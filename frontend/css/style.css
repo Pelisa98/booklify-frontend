@@ -1,0 +1,281 @@
+/* Booklify Custom Styles */
+
+:root {
+    --booklify-purple: #a084e8;
+    --booklify-light-purple: #f3eefe;
+    --booklify-dark: #343434;
+    --booklify-accent: #f7c873;
+    --booklify-footer-bg: #343434;
+    --booklify-footer-link: #f7c873;
+}
+
+body {
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    background: #fff;
+    color: #222;
+}
+
+html {
+    zoom: 0.8;
+}
+
+.brand-text {
+    color: var(--booklify-purple);
+    font-weight: 700;
+    font-size: 2rem;
+    letter-spacing: 1px;
+}
+
+.text-purple {
+    color: var(--booklify-purple) !important;
+}
+
+.bg-light-purple {
+    background: var(--booklify-light-purple) !important;
+}
+
+.btn-purple {
+    background: var(--booklify-purple) !important;
+    color: #fff !important;
+    border: none !important;
+    font-size: 1.15rem;
+    border-radius: 0.5rem;
+    padding: 0.75em 2em;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
+    margin-top: 1.5rem;
+}
+.btn-purple:hover, .btn-purple:focus {
+    background: #8661c1 !important;
+    color: #fff !important;
+}
+.btn-outline-purple {
+    background: var(--booklify-purple) !important;
+    color: #fff !important;
+    border: none !important;
+    font-size: 1.15rem;
+    border-radius: 0.5rem;
+    padding: 0.75em 2em;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
+    margin-top: 1.5rem;
+}
+.btn-outline-purple:hover, .btn-outline-purple:focus {
+    background: #8661c1 !important;
+    color: #fff !important;
+}
+
+/* Hero Section */
+.hero-section {
+    background: var(--booklify-light-purple);
+    position: relative;
+}
+.hero-section .display-5 {
+    font-size: 2.5rem;
+}
+.hero-img-wrapper {
+    position: relative;
+    min-height: 320px;
+}
+.hero-img-wrapper img {
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(160, 132, 232, 0.15);
+}
+
+.hero-img-fit {
+    max-width: 100%;
+    max-height: 340px;
+    object-fit: cover;
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 32px rgba(160, 132, 232, 0.15);
+    display: block;
+}
+
+.stats-row .h5 {
+    font-size: 1.4rem;
+}
+
+/* Features Section */
+.features-section .feature-card {
+    background: var(--booklify-light-purple);
+    border: 1px solid #e5d8fa;
+    box-shadow: 0 2px 12px rgba(160, 132, 232, 0.05);
+    transition: box-shadow 0.2s, transform 0.2s;
+    min-height: 270px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2.5rem 1.5rem;
+}
+.features-section .feature-card:hover {
+    box-shadow: 0 4px 24px rgba(160, 132, 232, 0.15);
+    transform: translateY(-4px) scale(1.02);
+}
+.feature-icon {
+    font-size: 2.5rem;
+    color: var(--booklify-purple);
+}
+.feature-link {
+    color: var(--booklify-purple);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.feature-link:hover {
+    color: #8661c1;
+    text-decoration: underline;
+}
+
+/* How It Works */
+.how-it-works-section {
+    background: var(--booklify-light-purple);
+}
+.how-list {
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+.how-list li {
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+}
+
+/* Academic Journey */
+.academic-journey-section .badge {
+    font-size: 1rem;
+    padding: 0.6em 1.2em;
+    border-radius: 1.5em;
+    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.08);
+}
+
+/* Footer */
+.footer-section {
+    background: var(--booklify-footer-bg);
+    color: #fff;
+}
+.footer-section .brand-text {
+    color: var(--booklify-purple);
+}
+.footer-link {
+    color: var(--booklify-footer-link);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.footer-link:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+.footer-social {
+    color: var(--booklify-purple);
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+    transition: color 0.2s;
+}
+.footer-social:hover {
+    color: var(--booklify-accent);
+}
+.footer-section h6 {
+    color: var(--booklify-accent);
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+/* Responsive Tweaks */
+@media (max-width: 991px) {
+    .hero-section .display-5 {
+        font-size: 2rem;
+    }
+    .hero-img-fit {
+        max-height: 220px;
+    }
+    .features-section .feature-card {
+        padding: 1.5rem 1rem;
+    }
+}
+@media (max-width: 767px) {
+    .hero-img-wrapper img {
+        max-width: 100%;
+    }
+    .footer-section .brand-text {
+        font-size: 1.5rem;
+    }
+}
+
+.styled-steps .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px !important;
+    height: 48px !important;
+    line-height: 48px !important;
+    margin-right: 1.2em;
+    background: var(--booklify-purple);
+    color: #fff;
+    font-size: 1.7rem !important;
+    font-weight: 800;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
+}
+.styled-steps li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2em;
+}
+
+/* Sticky Navbar */
+.sticky-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
+}
+
+/* Slide Animation for Login/Register */
+.login-register-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    position: relative;
+}
+.login-register-wrapper .login-col,
+.login-register-wrapper .register-col {
+    flex: 1 1 0;
+    max-width: 420px;
+    min-width: 320px;
+    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s cubic-bezier(0.4,0,0.2,1);
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+}
+.login-register-wrapper .register-col {
+    display: none;
+    opacity: 0;
+    transform: translateX(60px);
+}
+.login-register-wrapper.center-login .login-col {
+    margin: 0 auto;
+    transform: translateX(0);
+    opacity: 1;
+}
+.login-register-wrapper.center-login .register-col {
+    display: none;
+    opacity: 0;
+    transform: translateX(60px);
+}
+.login-register-wrapper.show-register .login-col {
+    display: block;
+    transform: translateX(-60px);
+    opacity: 0.7;
+}
+.login-register-wrapper.show-register .register-col {
+    display: block;
+    transform: translateX(0);
+    opacity: 1;
+}
+.login-register-wrapper.show-register {
+    justify-content: space-between;
+    gap: 2rem;
+}
