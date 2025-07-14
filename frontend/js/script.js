@@ -166,5 +166,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Product page: search/filter functionality
+    if (window.location.pathname.includes('products.html')) {
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('book-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const query = searchInput.value.toLowerCase();
+                    document.querySelectorAll('.book-card').forEach(function(card) {
+                        const title = card.querySelector('.card-title').textContent.toLowerCase();
+                        const author = card.querySelector('.card-text').textContent.toLowerCase();
+                        if (title.includes(query) || author.includes(query)) {
+                            card.parentElement.style.display = '';
+                        } else {
+                            card.parentElement.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+    }
+
     // Add more Booklify JS here...
 }); 
