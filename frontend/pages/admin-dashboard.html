@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Booklify</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" href="/frontend/assets/icons/booklify.ico">
+</head>
+<body>
+    <!-- Header / Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand d-flex align-items-center" href="../index.html">
+                <img src="../assets/images/logo.png" alt="Booklify Logo" height="48" class="me-2">
+                <span class="brand-text">Booklify Admin</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="#" id="logoutBtn">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Admin Dashboard -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#overview">
+                                <i class="bi bi-house-door"></i> Overview
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#users">
+                                <i class="bi bi-people"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#books">
+                                <i class="bi bi-book"></i> Books
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#orders">
+                                <i class="bi bi-cart"></i> Orders
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Dashboard</h1>
+                </div>
+
+                <!-- Overview Section -->
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Users</h5>
+                                <p class="card-text display-6">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Books</h5>
+                                <p class="card-text display-6">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Orders</h5>
+                                <p class="card-text display-6">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Revenue</h5>
+                                <p class="card-text display-6">R0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management Section -->
+                <div id="userManagementSection" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">User Management</h5>
+                                    <div class="d-flex gap-2">
+                                        <div class="input-group" style="width: 300px;">
+                                            <input type="text" class="form-control custom-input" id="searchInput" placeholder="Search by email or name">
+                                            <select class="form-select custom-select" id="searchType" style="max-width: 120px;">
+                                                <option value="email">Email</option>
+                                                <option value="name">Name</option>
+                                            </select>
+                                            <button class="btn btn-primary custom-btn" type="button" id="searchButton">
+                                                <i class="bi bi-search"></i>
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-outline-primary custom-btn-outline" id="resetSearch">
+                                            Show All
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Name</th>
+                                                    <th>Email</th>
+                                                    <th>Date Joined</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="usersTableBody">
+                                                <!-- Users will be populated here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="row mt-4" id="activitiesSection">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Recent Activities</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Action</th>
+                                                <th>User</th>
+                                                <th>Details</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="activitiesTableBody">
+                                            <!-- Activity rows will be dynamically populated -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade custom-modal" id="editUserModal" tabindex="-1" role="dialog" aria-labelledby="editUserModalLabel" aria-hidden="false">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header custom-modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="mb-3">
+                            <label for="editFullName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control custom-input" id="editFullName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control custom-input" id="editEmail" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary custom-btn-secondary" data-bs-dismiss="modal" aria-label="Cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary custom-btn" id="saveUserChanges">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="../js/adminService.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check if user is admin
+            const isAdmin = localStorage.getItem('booklifyUserRole') === 'admin';
+            if (!isAdmin) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Show user management section
+            document.getElementById('userManagementSection').style.display = 'block';
+
+            // Function to format date
+            function formatDate(dateString) {
+                return new Date(dateString).toLocaleDateString('en-ZA', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
+
+            // Function to load users
+            async function loadUsers() {
+                try {
+                    const users = await AdminService.getAllUsers();
+                    const tbody = document.getElementById('usersTableBody');
+                    tbody.innerHTML = ''; // Clear existing rows
+
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.id}</td>
+                            <td>${user.fullName}</td>
+                            <td>${user.email}</td>
+                            <td>${formatDate(user.dateJoined || user.createdAt)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="editUser(${user.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    // Update total users count
+                    document.querySelector('.card-text.display-6').textContent = users.length;
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                    alert('Failed to load users. Please try again.');
+                }
+            }
+
+            // Load users initially
+            await loadUsers();
+
+            // Handle search
+            const searchButton = document.getElementById('searchButton');
+            const searchInput = document.getElementById('searchInput');
+            const searchType = document.getElementById('searchType');
+            const resetSearch = document.getElementById('resetSearch');
+
+            searchButton.addEventListener('click', async () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const searchBy = searchType.value;
+                
+                try {
+                    const users = await AdminService.getAllUsers();
+                    const filteredUsers = users.filter(user => 
+                        user[searchBy].toLowerCase().includes(searchTerm)
+                    );
+                    
+                    const tbody = document.getElementById('usersTableBody');
+                    tbody.innerHTML = '';
+                    
+                    filteredUsers.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.id}</td>
+                            <td>${user.fullName}</td>
+                            <td>${user.email}</td>
+                            <td>${formatDate(user.dateJoined || user.createdAt)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="editUser(${user.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } catch (error) {
+                    console.error('Error searching users:', error);
+                    alert('Failed to search users. Please try again.');
+                }
+            });
+
+            resetSearch.addEventListener('click', loadUsers);
+
+            // Handle logout
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('booklifyLoggedIn');
+                localStorage.removeItem('booklifyUserRole');
+                localStorage.removeItem('booklifyToken');
+                window.location.href = 'login.html';
+            });
+
+            // Handle edit user
+            window.editUser = async function(userId) {
+                try {
+                    const users = await AdminService.getAllUsers();
+                    const user = users.find(u => u.id === userId);
+                    if (user) {
+                        document.getElementById('editUserId').value = user.id;
+                        document.getElementById('editFullName').value = user.fullName;
+                        document.getElementById('editEmail').value = user.email;
+                        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching user details:', error);
+                    alert('Failed to load user details. Please try again.');
+                }
+            };
+
+            // Handle delete user
+            window.deleteUser = async function(userId) {
+                if (confirm('Are you sure you want to delete this user?')) {
+                    try {
+                        await AdminService.deleteUser(userId);
+                        await loadUsers();
+                        alert('User deleted successfully');
+                    } catch (error) {
+                        console.error('Error deleting user:', error);
+                        alert('Failed to delete user. Please try again.');
+                    }
+                }
+            };
+
+            // Handle save user changes
+            document.getElementById('saveUserChanges').addEventListener('click', async function() {
+                const userId = document.getElementById('editUserId').value;
+                const userData = {
+                    fullName: document.getElementById('editFullName').value,
+                    email: document.getElementById('editEmail').value
+                };
+
+                try {
+                    await AdminService.updateUser(userId, userData);
+                    await loadUsers();
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    alert('User updated successfully');
+                } catch (error) {
+                    console.error('Error updating user:', error);
+                    alert(`Failed to update user: ${error.message}`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

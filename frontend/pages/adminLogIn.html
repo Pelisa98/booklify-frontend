@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Booklify</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" href="../assets/icons/booklify.ico">
+    <style>
+        .login-register-wrapper {
+            display: flex;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-col, .register-col {
+            min-width: 100%;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .register-col {
+            position: absolute;
+            transform: translateX(100%);
+        }
+
+        .login-register-wrapper.show-register .login-col {
+            transform: translateX(-100%);
+        }
+
+        .login-register-wrapper.show-register .register-col {
+            transform: translateX(0);
+        }
+
+        .login-register-wrapper.center-login .login-col {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header / Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand d-flex align-items-center" href="../index.html">
+                <img src="../assets/images/logo.png" alt="Booklify Logo" height="48" class="me-2">
+                <span class="brand-text">Booklify</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="about.html">About Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login/Register Section -->
+    <section class="login-section py-5 bg-light-purple min-vh-100">
+        <div class="container">
+            <div class="login-register-wrapper center-login" id="loginRegisterWrapper">
+                <div class="col-lg-5 mb-4 login-col">
+                    <div class="bg-white rounded shadow p-4">
+                        <h2 class="fw-bold mb-3 text-center">Admin Login</h2>
+                        <form id="adminLoginForm">
+                            <div class="mb-3">
+                                <label for="loginEmail" class="form-label">Email address</label>
+                                <input type="email" class="form-control" id="loginEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="loginPassword" class="form-label">Password</label>
+                                                                <div class="input-group">
+                                    <input type="password" class="form-control custom-input" id="loginPassword" name="loginPassword" required>
+                                    <button class="btn btn-outline-primary custom-btn-outline toggle-password" type="button" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-purple w-100 fw-bold mb-3">Login as Admin</button>
+                            <a href="login.html" class="btn btn-outline-dark w-100 mb-2">Back to User Login</a>
+                        </form>
+                        <div class="text-center mt-3">
+                            <span>Need admin access?</span>
+                            <a href="#register" class="text-purple fw-bold" id="showRegisterBtn">Register as Admin</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5 mb-4 register-col" id="registerCol">
+                    <div class="bg-white rounded shadow p-4" id="registerCollapse">
+                        <h2 class="fw-bold mb-3 text-center">Admin Registration</h2>
+                        <form id="adminRegisterForm">
+                            <div class="mb-3">
+                                <label for="registerName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="registerName" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="registerEmail" class="form-label">Email address</label>
+                                <input type="email" class="form-control" id="registerEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="registerPassword" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control custom-input" id="registerPassword" placeholder="Create a password" required>
+                                    <button class="btn btn-outline-primary custom-btn-outline toggle-password" type="button" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control custom-input" id="confirmPassword" placeholder="Confirm your password" required>
+                                    <button class="btn btn-outline-primary custom-btn-outline toggle-password" type="button" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-purple w-100 fw-bold">Register as Admin</button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <span>Already have an admin account?</span>
+                            <a href="#" class="text-purple fw-bold" id="showLoginBtn">Login</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer-section bg-dark text-light pt-5 pb-3 mt-5">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="../assets/images/logo.png" alt="Booklify Logo" height="40" class="me-2">
+                        <span class="brand-text fs-4">Booklify</span>
+                    </div>
+                    <p>Your trusted platform for affordable textbooks. Connecting students and educators with quality books at unbeatable prices.</p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="footer-social"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="footer-social"><i class="bi bi-twitter"></i></a>
+                        <a href="#" class="footer-social"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="footer-social"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h6 class="fw-bold text-warning">Quick Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="../index.html" class="footer-link">Home</a></li>
+                        <li><a href="about.html" class="footer-link">About Us</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <h6 class="fw-bold text-warning">Support</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="footer-link">Contact Us</a></li>
+                        <li><a href="#" class="footer-link">Help Center</a></li>
+                        <li><a href="#" class="footer-link">Terms & Conditions</a></li>
+                        <li><a href="#" class="footer-link">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="fw-bold text-warning">Contact Info</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-envelope"></i> Email<br><a href="mailto:support@booklify.com" class="footer-link">support@booklify.com</a></li>
+                        <li class="mt-2"><i class="bi bi-telephone"></i> Phone<br><a href="tel:021 321 5432" class="footer-link">021 321 5432</a></li>
+                        <li class="mt-2"><i class="bi bi-clock"></i> Support Hours<br>24/7 Available</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row border-top pt-3 mt-3 small">
+                <div class="col-md-8">
+                    <span>&copy; 2025 Booklify. All rights reserved. Empowering students with affordable education.</span>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="#" class="footer-link me-3">Terms</a>
+                    <a href="#" class="footer-link me-3">Privacy</a>
+                    <a href="#" class="footer-link">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/script.js"></script>
+    <script src="../js/adminService.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Admin login handling
+            const loginForm = document.getElementById('adminLoginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('loginEmail').value;
+                    const password = document.getElementById('loginPassword').value;
+
+                    try {
+                        await AdminService.login(email, password);
+                        window.location.href = 'admin-dashboard.html';
+                    } catch (error) {
+                        alert('Login failed. Please check your credentials.');
+                    }
+                });
+            }
+
+            // Admin registration handling
+            const registerForm = document.getElementById('adminRegisterForm');
+            if (registerForm) {
+                registerForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    // Get form values
+                    const fullName = document.getElementById('registerName').value;
+                    const email = document.getElementById('registerEmail').value;
+                    const password = document.getElementById('registerPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+
+                    if (password !== confirmPassword) {
+                        alert('Passwords do not match!');
+                        return;
+                    }
+
+                    // Create admin object matching the backend entity
+                    const adminData = {
+                        fullName: fullName,
+                        email: email,
+                        password: password
+                    };
+
+                    try {
+                        console.log('Sending registration data:', adminData);
+                        await AdminService.register(adminData);
+                        alert('Registration successful! Please login.');
+                        loginRegisterWrapper.classList.remove('show-register');
+                    } catch (error) {
+                        console.error('Registration error details:', error);
+                        alert(`Registration failed: ${error.message || 'Please try again.'}`);
+                    }
+                });
+            }
+
+            // Show/hide register form
+            const showRegisterBtn = document.getElementById('showRegisterBtn');
+            const showLoginBtn = document.getElementById('showLoginBtn');
+            const loginRegisterWrapper = document.getElementById('loginRegisterWrapper');
+
+            showRegisterBtn?.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginRegisterWrapper.classList.add('show-register');
+            });
+
+            showLoginBtn?.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginRegisterWrapper.classList.remove('show-register');
+            });
+            // Setup password visibility toggle
+            const toggleButtons = document.querySelectorAll('.toggle-password');
+            toggleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const input = this.previousElementSibling;
+                    const icon = this.querySelector('i');
+                    
+                    // Toggle password visibility
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('bi-eye');
+                        icon.classList.add('bi-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('bi-eye-slash');
+                        icon.classList.add('bi-eye');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

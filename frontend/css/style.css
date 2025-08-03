@@ -7,16 +7,24 @@
     --booklify-accent: #f7c873;
     --booklify-footer-bg: #343434;
     --booklify-footer-link: #f7c873;
+    --booklify-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
+    --booklify-shadow-hover: 0 4px 24px rgba(160, 132, 232, 0.15);
+    --booklify-radius: 0.5rem;
+    --booklify-radius-lg: 1rem;
 }
 
+/* Global Styles */
 body {
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     background: #fff;
-    color: #222;
+    color: var(--booklify-dark);
+    line-height: 1.6;
 }
 
-html {
-    zoom: 0.8;
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    margin-bottom: 1rem;
 }
 
 .brand-text {
@@ -34,16 +42,84 @@ html {
     background: var(--booklify-light-purple) !important;
 }
 
+/* Buttons */
+.btn {
+    font-size: 1rem;
+    padding: 0.75em 2em;
+    border-radius: var(--booklify-radius);
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.btn-lg {
+    font-size: 1.15rem;
+    padding: 0.85em 2.2em;
+}
+
 .btn-purple {
     background: var(--booklify-purple) !important;
     color: #fff !important;
     border: none !important;
-    font-size: 1.15rem;
-    border-radius: 0.5rem;
-    padding: 0.75em 2em;
-    font-weight: 700;
-    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
-    margin-top: 1.5rem;
+    box-shadow: var(--booklify-shadow);
+}
+
+.btn-purple:hover, .btn-purple:focus {
+    background: #8661c1 !important;
+    box-shadow: var(--booklify-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.btn-outline-purple {
+    background: transparent !important;
+    color: var(--booklify-purple) !important;
+    border: 2px solid var(--booklify-purple) !important;
+}
+
+.btn-outline-purple:hover, .btn-outline-purple:focus {
+    background: var(--booklify-purple) !important;
+    color: #fff !important;
+    transform: translateY(-2px);
+}
+
+.bg-purple {
+    background-color: var(--booklify-purple) !important;
+}
+
+/* Profile Page Styles */
+.profile-section .rounded-lg {
+    border-radius: 1rem !important;
+}
+
+.profile-section .shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.profile-section .bi {
+    margin-right: 0.5rem;
+}
+
+.profile-section .form-control:focus {
+    border-color: var(--booklify-purple);
+    box-shadow: 0 0 0 0.25rem rgba(160, 132, 232, 0.25);
+}
+
+.profile-section .badge {
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.profile-section .list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 1rem;
+}
+
+.profile-section .list-group-item:first-child {
+    border-top: none;
+}
+
+.profile-section .list-group-item:last-child {
+    border-bottom: none;
 }
 .btn-purple:hover, .btn-purple:focus {
     background: #8661c1 !important;
@@ -97,17 +173,19 @@ html {
 }
 
 /* Features Section */
-.features-section .feature-card {
+/* Feature Cards */
+.feature-card {
     background: var(--booklify-light-purple);
-    border: 1px solid #e5d8fa;
-    box-shadow: 0 2px 12px rgba(160, 132, 232, 0.05);
-    transition: box-shadow 0.2s, transform 0.2s;
+    padding: 2rem;
+    height: 100%;
     min-height: 270px;
+    border-radius: var(--booklify-radius);
+    box-shadow: var(--booklify-shadow);
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
-    padding: 2.5rem 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
 }
 .features-section .feature-card:hover {
     box-shadow: 0 4px 24px rgba(160, 132, 232, 0.15);
@@ -150,35 +228,46 @@ html {
 }
 
 /* Footer */
+/* Footer */
 .footer-section {
     background: var(--booklify-footer-bg);
     color: #fff;
+    padding: 4rem 0 2rem;
 }
+
 .footer-section .brand-text {
     color: var(--booklify-purple);
 }
+
 .footer-link {
-    color: var(--booklify-footer-link);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-.footer-link:hover {
     color: #fff;
-    text-decoration: underline;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+    margin-bottom: 0.5rem;
 }
+
+.footer-link:hover {
+    color: var(--booklify-accent);
+    transform: translateX(4px);
+}
+
 .footer-social {
     color: var(--booklify-purple);
     font-size: 1.5rem;
+    transition: all 0.3s ease;
     margin-right: 0.5rem;
-    transition: color 0.2s;
 }
+
 .footer-social:hover {
     color: var(--booklify-accent);
+    transform: translateY(-2px);
 }
+
 .footer-section h6 {
     color: var(--booklify-accent);
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Responsive Tweaks */
