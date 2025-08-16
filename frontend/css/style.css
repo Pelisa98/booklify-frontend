@@ -368,3 +368,54 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: space-between;
     gap: 2rem;
 }
+
+/* Review System Styles */
+.review-section {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.rating-input .bi {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.rating-input .bi:hover {
+    transform: scale(1.1);
+}
+
+.rating-display .bi {
+    font-size: 1.1rem;
+}
+
+.review-item {
+    transition: all 0.2s ease;
+}
+
+.review-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.review-form {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+}
+
+.btn-group-vertical .btn {
+    border-radius: 6px;
+    margin-bottom: 0.25rem;
+}
+
+.btn-group-vertical .btn:last-child {
+    margin-bottom: 0;
+}
+
+.reviews-section .card {
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reviews-section .card-header {
+    border-bottom: 1px solid #e9ecef;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}

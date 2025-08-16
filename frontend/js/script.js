@@ -124,25 +124,17 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div class="row mt-5 justify-content-center">
                 <div class="col-md-8">
-                    <div class="bg-white rounded shadow p-4">
-                        <h4 class="mb-3">Reviews & Ratings</h4>
-                        <div class="mb-2">
-                            <span class="fs-5 fw-bold">${book.rating.toFixed(1)}</span>
-                            <span>${renderStars(Math.round(book.rating))}</span>
-                            <span class="text-muted ms-2">(${book.reviews.length} reviews)</span>
-                        </div>
-                        <ul class="list-unstyled mt-3">
-                            ${book.reviews.map(r => `
-                                <li class="mb-3 border-bottom pb-2">
-                                    <div class="fw-bold">${r.name} <span class="ms-2">${renderStars(r.stars)}</span></div>
-                                    <div class="text-muted small">${r.comment}</div>
-                                </li>
-                            `).join('')}
-                        </ul>
+                    <div id="reviewContainer">
+                        <!-- Reviews will be loaded here by the ReviewComponent -->
                     </div>
                 </div>
             </div>
             `;
+            
+            // Initialize the review component
+            if (typeof ReviewComponent !== 'undefined') {
+                window.reviewComponent = new ReviewComponent('reviewContainer', book.id);
+            }
         } else {
             productDetailContainer.innerHTML = '<div class="alert alert-danger">Book not found.</div>';
         }
