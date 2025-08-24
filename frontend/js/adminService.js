@@ -2,6 +2,130 @@
 const API_BASE_URL = 'http://localhost:8081/api/admins';
 
 class AdminService {
+    // Update book by ID
+    static async updateBookById(bookId, updatedBookDto) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/editBook/${bookId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updatedBookDto)
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update book');
+        }
+        return await response.json();
+    }
+    // --- Book Management Methods ---
+    static async getAllBooks() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/getAllBooks`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch books');
+        return await response.json();
+    }
+
+    static async deleteBookById(bookId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/deleteBook/${bookId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to delete book');
+        return true;
+    }
+    static async deleteAdminById(adminId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/deleteAdmin/${adminId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to delete admin');
+        return true;
+    }
+
+    static async editBookById(bookId, updatedBook) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/editBook/${bookId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedBook)
+        });
+        if (!response.ok) throw new Error('Failed to edit book');
+        return await response.json();
+    }
+
+    static async getBookById(bookId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch book');
+        return await response.json();
+    }
+
+    static async searchBooksByTitle(title) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/books/search/title?title=${encodeURIComponent(title)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to search books by title');
+        return await response.json();
+    }
+
+    static async searchBooksByAuthor(author) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/books/search/author?author=${encodeURIComponent(author)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to search books by author');
+        return await response.json();
+    }
+
+    static async searchBooksByIsbn(isbn) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/books/search/isbn?isbn=${encodeURIComponent(isbn)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to search books by ISBN');
+        return await response.json();
+    }
+
+    static async findBooksByUserId(userId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/books/user/${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch books for user');
+        return await response.json();
+    }
     static async login(email, password) {
         try {
             const response = await fetch(`${API_BASE_URL}/login`, {
@@ -120,7 +244,7 @@ class AdminService {
 
             // Since the backend method is void, we don't expect any content
             // Just return a success object
-            return { 
+            return {
                 success: true,
                 message: 'User updated successfully',
                 userId: userId,
@@ -216,5 +340,84 @@ class AdminService {
             console.error('Get user error:', error);
             throw error;
         }
+    }
+
+
+    // --- Order Management Methods ---
+
+    static async viewAllOrders() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orders/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch all orders');
+        return await response.json();
+    }
+
+    static async viewAllOrderItems() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orderItems/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch all order items');
+        return await response.json();
+    }
+
+    static async updateOrderItemStatus(orderItemId, newStatus) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/ordersItem/${orderItemId}/status?newStatus=${encodeURIComponent(newStatus)}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to update order item status');
+        // Expecting 204 No Content, so no JSON to parse
+        return true;
+    }
+
+    static async searchOrdersByUserId(userId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orders/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to search orders by user ID');
+        return await response.json();
+    }
+
+    static async searchOrderItemsByOrderId(orderId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orderItems/order/${orderId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to search order items by order ID');
+        return await response.json();
+    }
+
+    static async searchOrderItemsByStatus(status) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orderItems/status?status=${encodeURIComponent(status)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to search order items by status');
+        return await response.json();
+    }
+
+    // --- Revenue Management Methods ---
+
+    static async calculateTotalRevenue() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/revenue/total`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to calculate total revenue');
+        return await response.json();
+    }
+
+    static async calculateRevenueByDateRange(startDate, endDate) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/revenue/dateRange?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to calculate revenue by date range');
+        return await response.json();
     }
 }
