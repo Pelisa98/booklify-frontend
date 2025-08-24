@@ -20,22 +20,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Prepare book data
-            const bookData = {
-                title: document.getElementById('bookTitle').value.trim(),
-                author: document.getElementById('bookAuthor').value.trim(),
-                publisher: document.getElementById('bookPublisher').value.trim(),
-                isbn: document.getElementById('bookISBN').value.trim(),
-                condition: document.getElementById('bookCondition').value,
-                price: parseFloat(document.getElementById('bookPrice').value),
-                description: document.getElementById('bookDescription').value.trim()
-            };
-
+                const book = {
+                    title: document.getElementById('bookTitle').value.trim(),
+                    author: document.getElementById('bookAuthor').value.trim(),
+                    publisher: document.getElementById('bookPublisher').value.trim(),
+                    isbn: document.getElementById('bookISBN').value.trim(),
+                    condition: document.getElementById('bookCondition').value,
+                    price: parseFloat(document.getElementById('bookPrice').value),
+                    description: document.getElementById('bookDescription').value.trim(),
+                    uploadedDate: new Date().toISOString(),
+                    userId: Number(localStorage.getItem('booklifyUserId')) // Add userId here
+                };
             // Get image file
             const imageFile = document.getElementById('bookImage').files[0];
 
             // Create FormData to send both JSON and file
             const formData = new FormData();
-            formData.append('bookRequest', new Blob([JSON.stringify(bookData)], {
+            formData.append('bookRequest', new Blob([JSON.stringify(book)], {
                 type: 'application/json'
             }));
             
@@ -48,17 +49,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Send to backend
-            const response = await fetch('http://localhost:8081/Booklify/api/book/create', {
+            const response = await fetch('http://localhost:8081/api/book/create', {
                 method: 'POST',
                 body: formData
                 // Don't set Content-Type header - let browser set it with boundary
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to submit book');
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to create book');
             }
-
             const result = await response.json();
             showSuccessMessage('Book successfully listed!');
             sellForm.reset();
@@ -108,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
             alertDiv = document.createElement('div');
             alertDiv.id = 'formAlert';
             alertDiv.className = 'alert alert-success mt-3';
-            sellForm.parentNode.insertBefore(alertDiv, sellForm.nextSibling);
         }
         alertDiv.textContent = message;
         alertDiv.classList.remove('d-none');

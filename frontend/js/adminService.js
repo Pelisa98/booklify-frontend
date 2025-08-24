@@ -244,7 +244,7 @@ class AdminService {
 
             // Since the backend method is void, we don't expect any content
             // Just return a success object
-            return { 
+            return {
                 success: true,
                 message: 'User updated successfully',
                 userId: userId,
@@ -340,5 +340,84 @@ class AdminService {
             console.error('Get user error:', error);
             throw error;
         }
+    }
+
+
+    // --- Order Management Methods ---
+
+    static async viewAllOrders() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orders/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch all orders');
+        return await response.json();
+    }
+
+    static async viewAllOrderItems() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orderItems/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch all order items');
+        return await response.json();
+    }
+
+    static async updateOrderItemStatus(orderItemId, newStatus) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/ordersItem/${orderItemId}/status?newStatus=${encodeURIComponent(newStatus)}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to update order item status');
+        // Expecting 204 No Content, so no JSON to parse
+        return true;
+    }
+
+    static async searchOrdersByUserId(userId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orders/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to search orders by user ID');
+        return await response.json();
+    }
+
+    static async searchOrderItemsByOrderId(orderId) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orderItems/order/${orderId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to search order items by order ID');
+        return await response.json();
+    }
+
+    static async searchOrderItemsByStatus(status) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/orderItems/status?status=${encodeURIComponent(status)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to search order items by status');
+        return await response.json();
+    }
+
+    // --- Revenue Management Methods ---
+
+    static async calculateTotalRevenue() {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/revenue/total`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to calculate total revenue');
+        return await response.json();
+    }
+
+    static async calculateRevenueByDateRange(startDate, endDate) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/revenue/dateRange?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to calculate revenue by date range');
+        return await response.json();
     }
 }
