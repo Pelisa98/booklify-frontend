@@ -12,29 +12,35 @@
 </head>
 <body>
     <!-- Header / Navbar -->
+    <!-- Organized Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
-        <div class="container d-flex align-items-center justify-content-between">
-            <a class="navbar-brand d-flex align-items-center" href="#">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="index.html">
                 <img src="assets/images/logo.png" alt="Booklify Logo" height="48" class="me-2">
-                <span class="brand-text">Booklify</span>
+                <span class="brand-text fw-bold fs-4">Booklify</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
-                    <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="pages/about.html">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link" href="pages/products.html">Shop Textbooks</a></li>
-                    <li class="nav-item"><a class="nav-link" href="pages/sell.html">Sell Textbooks</a></li>
-                    <li class="nav-item profile-link"><a class="nav-link" href="pages/profile.html"><i class="bi bi-person-circle"></i> Profile</a></li>
-                    <!--<li class="nav-item d-flex align-items-center ms-2">
-                        <a class="nav-link position-relative" href="pages/cart.html">
-                            <i class="bi bi-cart3 fs-4"></i>
-                        </a>
-                    </li>-->
-                </ul>
-            </div>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center gap-2">
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" href="pages/products.html">
+                                <i class="bi bi-book"></i> Shop Textbooks
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" href="pages/sell.html">
+                                <i class="bi bi-upload"></i> Sell Textbooks
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" href="pages/profile.html">
+                                <i class="bi bi-person-circle"></i> Profile
+                            </a>
+                        </li>
+                    </ul>
+                </div>
         </div>
     </nav>
 
@@ -44,7 +50,6 @@
             <div class="row align-items-center">
                 <div class="col-lg-6 mb-4 mb-lg-0">
                     <h1 class="display-5 fw-bold">Affordable Textbooks for <span class="text-purple">University Students</span></h1>
-                    <p class="lead">Access the textbooks you need at prices you can afford. Buy and sell second-hand and brand-new textbooks with our user-friendly platform.</p>
                     <div class="d-flex gap-3 mb-4">
                         <a href="pages/products.html" class="btn btn-purple btn-lg"><i class="bi bi-book"></i> Shop Textbooks</a>
                         <a href="pages/sell.html" class="btn btn-outline-purple btn-lg"><i class="bi bi-upload"></i> Sell Your Books</a>
@@ -91,7 +96,7 @@
                     <div class="feature-card p-4 h-100 text-center bg-light-purple rounded">
                         <div class="feature-icon mb-3"><i class="bi bi-upload"></i></div>
                         <h5 class="fw-bold">Sell Your Books</h5>
-                        <p class="mb-2">Turn your used textbooks into cash. List your books with detailed condition reviews, manage through your seller profile, and track buyer interest and sales performance.</p>
+                        <p class="mb-2">Turn your used textbooks into cash. List your books, manage through your seller profile, and track buyer interest and sales performance.</p>
                         <a href="pages/sell.html" class="feature-link">Start Selling &rarr;</a>
                     </div>
                 </div>
@@ -107,7 +112,7 @@
                     <div class="feature-card p-4 h-100 text-center bg-light-purple rounded">
                         <div class="feature-icon mb-3"><i class="bi bi-shield-check"></i></div>
                         <h5 class="fw-bold">Quality Guarantee</h5>
-                        <p class="mb-2">Every textbook includes detailed condition ratings reviewed by sellers. View comprehensive condition reports and buyer reviews through your profile dashboard.</p>
+                        <p class="mb-2">Every textbook includes detailed condition ratings by sellers. View comprehensive condition reports through your profile dashboard.</p>
                         <a href="pages/about.html" class="feature-link">Our Promise &rarr;</a>
                     </div>
                 </div>
@@ -135,7 +140,7 @@
                     <h4 class="text-purple mb-3"><i class="bi bi-upload"></i> Selling Textbooks</h4>
                     <ol class="how-list">
                         <li><strong>Create Account & List Books</strong><br>Register for a seller account and enter your book details including ISBN, title, author, and upload clear photos of your textbooks.</li>
-                        <li><strong>Review Book Condition</strong><br>Carefully assess and document your book's condition (New, Like New, Good, Fair, Poor). This helps buyers make informed decisions and ensures fair pricing.</li>
+                        <li><strong>Book Condition</strong><br>Carefully assess and document your book's condition (New, Like New, Good, Fair, Poor). This helps buyers make informed decisions and ensures fair pricing.</li>
                         <li><strong>Set Price & Go Live</strong><br>Set your competitive price based on condition and market rates. Your listing goes live immediately for buyers to discover.</li>
                         <li><strong>Manage Through Profile</strong><br>Track views, edit details, mark as sold, or manage availability through your seller profile dashboard. Monitor buyer interest and sales performance.</li>
                         <li><strong>Ship & Get Paid</strong><br>Once sold, ship your book using our recommended methods and receive payment securely. Turn your unused textbooks into cash!</li>
@@ -143,11 +148,7 @@
                     <a href="pages/sell.html" class="btn btn-purple mt-3 px-4 py-2 fw-bold">Start Selling</a>
                 </div>
             </div>
-            <div class="row mt-5">
-                <div class="col-12 d-flex justify-content-center">
-                    <img src="assets/images/bookexchange.png" alt="Book exchange" class="img-fluid rounded shadow-lg" style="max-width: 500px;">
-                </div>
-            </div>
+            <!-- Image under How Booklify Works removed -->
         </div>
     </section>
 

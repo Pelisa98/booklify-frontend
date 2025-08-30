@@ -59,13 +59,6 @@ class AuthService {
                 // Add to navigation
                 navList.appendChild(authContainer);
                 
-                // Add My Reviews link
-                const reviewsLink = document.createElement('li');
-                reviewsLink.className = 'nav-item';
-                const isIndex = window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/');
-                const reviewsPath = isIndex ? 'pages/reviews.html' : 'reviews.html';
-                reviewsLink.innerHTML = `<a class="nav-link" href="${reviewsPath}">My Reviews</a>`;
-                navList.appendChild(reviewsLink);                // Add logout functionality
                 document.getElementById('logoutBtn')?.addEventListener('click', () => {
                     UserService.logout();
                     window.location.href = loginPath;
