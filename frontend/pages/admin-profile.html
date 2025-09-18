@@ -9,6 +9,29 @@
     <link rel="icon" href="/frontend/assets/icons/booklify.ico">
 </head>
 <body>
+    <!-- Removed duplicate admin profile card at the top -->
+    <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        const adminId = localStorage.getItem('booklifyAdminId');
+        if (!adminId) return;
+        try {
+            const response = await fetch(`http://localhost:8081/api/admins/getById/${adminId}`);
+            if (!response.ok) throw new Error('Failed to fetch admin');
+            const admin = await response.json();
+            document.getElementById('adminName').textContent = admin.fullName || '';
+            document.getElementById('adminEmail').textContent = admin.email || '';
+            document.getElementById('adminRole').textContent = admin.role || 'Administrator';
+            document.getElementById('adminDateJoined').textContent = admin.dateJoined ? new Date(admin.dateJoined).toLocaleDateString() : '';
+            document.getElementById('adminBio').textContent = admin.bio || '';
+        } catch (e) {
+            document.getElementById('adminName').textContent = 'Error loading admin';
+            document.getElementById('adminEmail').textContent = '';
+            document.getElementById('adminRole').textContent = '';
+            document.getElementById('adminDateJoined').textContent = '';
+            document.getElementById('adminBio').textContent = '';
+        }
+    });
+    </script>
     <!-- Header / Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
         <div class="container d-flex align-items-center justify-content-between">
@@ -32,17 +55,51 @@
     <section class="profile-section py-5 bg-light-purple min-vh-100">
         <div class="container">
             <div class="row justify-content-center">
+                <div class="col-lg-4 mb-4" id="profileView">
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden h-100">
+                        <div class="p-4 bg-purple text-white text-center">
+                            <div class="mb-3">
+                                <i class="bi bi-person-badge display-1"></i>
+                            </div>
+                            <h3 class="fw-bold mb-0" id="fullName">Admin Name</h3>
+                            <p class="mb-0" id="email">admin@email.com</p>
+                        </div>
+                        <div class="p-4" style="min-height: calc(100vh - 400px);">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span><i class="bi bi-shield-lock text-warning"></i> Role</span>
+                                <span class="badge bg-purple">Administrator</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span><i class="bi bi-calendar-check"></i> Member Since</span>
+                                <span class="text-muted" id="dateJoined">2023-01-01</span>
+                            </div>
+                            <hr>
+                            <div class="mb-3">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-chat-quote"></i> Bio</h6>
+                                <p class="text-muted mb-0" id="adminBio">Admin bio goes here.</p>
+                            </div>
+                            <div class="d-grid gap-2 mt-auto">
+                                <button class="btn btn-purple btn-edit-profile">
+                                    <i class="bi bi-pencil-square"></i> Edit Profile
+                                </button>
+                                <button class="btn btn-outline-danger btn-logout" id="logoutBtn">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="col-lg-8">
                     <div class="bg-white rounded shadow p-4">
-                        <h2 class="fw-bold mb-4 text-center">Admin Profile</h2>
+                        <h2 class="fw-bold mb-4 text-center">Edit Admin Profile</h2>
                         <form id="profileForm">
                             <div class="mb-3">
-                                <label for="fullName" class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="fullName" required>
+                                <label for="fullNameInput" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullNameInput" required>
                             </div>
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email address</label>
-                                <input type="email" class="form-control" id="email" required readonly>
+                                <label for="emailInput" class="form-label">Email address</label>
+                                <input type="email" class="form-control" id="emailInput" required readonly>
                             </div>
                             <div class="mb-3">
                                 <label for="password" class="form-label">New Password (leave blank to keep current)</label>
@@ -56,11 +113,10 @@
                                 <button type="submit" class="btn btn-purple">Update Profile</button>
                             </div>
                         </form>
-
                         <div class="mt-4">
                             <h3 class="h5 mb-3">Account Information</h3>
                             <p><strong>Last Login:</strong> <span id="lastLogin">Loading...</span></p>
-                            <p><strong>Account Created:</strong> <span id="dateJoined">Loading...</span></p>
+                            <p><strong>Account Created:</strong> <span id="dateJoinedInfo">Loading...</span></p>
                         </div>
                     </div>
                 </div>
