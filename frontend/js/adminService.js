@@ -140,16 +140,40 @@ class AdminService {
                 throw new Error('Login failed');
             }
 
+            // Expecting the backend to return the token as plain text and admin info in a header or a follow-up fetch
             const token = await response.text();
             localStorage.setItem('booklifyToken', token);
             localStorage.setItem('booklifyUserRole', 'admin');
             localStorage.setItem('booklifyLoggedIn', 'true');
             localStorage.setItem('booklifyUserEmail', email);
+
+            // Fetch admin profile to get the ID
+            const adminProfile = await AdminService.getAdminProfileByEmail(email);
+            if (adminProfile && adminProfile.id) {
+                localStorage.setItem('booklifyAdminId', adminProfile.id);
+            }
             return true;
         } catch (error) {
             console.error('Login error:', error);
             throw error;
         }
+    }
+
+    // Helper to fetch admin by email (assuming unique email)
+    static async getAdminProfileByEmail(email) {
+        const token = localStorage.getItem('booklifyToken');
+        const response = await fetch(`${API_BASE_URL}/users/email?email=${encodeURIComponent(email)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) return null;
+        const admins = await response.json();
+        // If the endpoint returns a list, find the admin with the matching email
+        if (Array.isArray(admins)) {
+            return admins.find(a => a.email === email) || admins[0];
+        }
+        return admins;
     }
 
     static async register(adminData) {
