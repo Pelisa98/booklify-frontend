@@ -47,6 +47,9 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#" id="ordersNav"><i class="bi bi-cart"></i> Orders</a>
                         </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link" href="admin-profile.html" id="profileNav"><i class="bi bi-person-badge"></i> Profile</a>
+                        </li>
                     </ul>
                 </div>
             </nav>
@@ -130,7 +133,14 @@
             sections.forEach(id => document.getElementById(id).style.display = (id === targetId) ? 'block' : 'none');
             navLinks.forEach(link => link.classList.toggle('active', navMap[link.id] === targetId));
         };
-        navLinks.forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); showSection(navMap[e.currentTarget.id]); }));
+        navLinks.forEach(link => link.addEventListener('click', (e) => {
+            // Only prevent default and switch section for dashboard sections
+            if (navMap[e.currentTarget.id]) {
+                e.preventDefault();
+                showSection(navMap[e.currentTarget.id]);
+            }
+            // For profileNav, allow normal navigation
+        }));
 
         // --- MODALS ---
         const userModal = new bootstrap.Modal(document.getElementById('editUserModal'));
