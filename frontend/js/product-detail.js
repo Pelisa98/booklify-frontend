@@ -1,4 +1,5 @@
 // product-detail.js - This should be placed in your ../js/ directory
+import { CartService } from './cartService.js';
 document.addEventListener('DOMContentLoaded', async () => {
     const productDetailContainer = document.getElementById('productDetailContainer');
     
@@ -53,6 +54,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
         productDetailContainer.innerHTML = bookDetailsHtml;
+
+        // Add to Cart button logic
+        const addToCartBtn = document.getElementById('addToCartBtn');
+        if (addToCartBtn) {
+            addToCartBtn.addEventListener('click', async () => {
+                const userId = localStorage.getItem('booklifyUserId');
+                if (!userId) {
+                    alert('You must be logged in to add items to your cart.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                try {
+                    let cart = await CartService.getCartByUserId(userId);
+                    if (!cart) {
+                        // Create a new cart for the user using only the user ID (CartCreateDto)
+                        await CartService.createCart(userId);
+                        cart = await CartService.getCartByUserId(userId); // fetch the created cart
+                    }
+                    // Check if book already in cart
+                    const existingItem = cart.cartItems.find(item => item.book.bookID === book.bookID);
+                    if (existingItem) {
+                        await CartService.updateCartItemsQuantity(cart.cartId, book.bookID, existingItem.quantity + 1);
+                    } else {
+                        // Add new item by updating cart with new item (backend should handle this logic)
+                        cart.cartItems.push({ book: { bookID: book.bookID }, quantity: 1 });
+                        await CartService.updateCart(cart);
+                    }
+                    alert('Book added to cart!');
+                    window.location.href = 'cart.html';
+                } catch (err) {
+                    alert('Failed to add to cart.');
+                }
+            });
+        }
     };
 
     // Main logic to fetch and display the book
