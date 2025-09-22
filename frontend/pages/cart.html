@@ -23,15 +23,9 @@
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
                     <li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="about.html">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
                     <li class="nav-item"><a class="nav-link" href="products.html">Shop Textbooks</a></li>
                     <li class="nav-item"><a class="nav-link" href="sell.html">Sell Textbooks</a></li>
                     <li class="nav-item nav-profile-link" style="display:none;"><a class="nav-link" href="profile.html">Profile</a></li>
-                    <li class="nav-item d-flex align-items-center ms-2">
-                        <a class="nav-link position-relative" href="cart.html">
-                            <i class="bi bi-cart3 fs-4"></i>
-                        </a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -58,8 +52,8 @@
                             </tbody>
                         </table>
                         <div class="d-flex justify-content-end align-items-center mt-4">
-                            <div class="me-4 fw-bold fs-5">Subtotal: <span class="text-purple">R1210</span></div>
-                            <a href="checkout.html" class="btn btn-purple btn-lg fw-bold">Proceed to Checkout</a>
+                            <div class="me-4 fw-bold fs-5">Subtotal: <span class="text-purple" id="cartSubtotal">R1210</span></div>
+                            <a href="checkout.html" class="btn btn-purple btn-lg fw-bold" id="proceedToCheckoutBtn">Proceed to Checkout</a>
                         </div>
                     </div>
                 </div>
@@ -125,6 +119,38 @@
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const subtotalElem = document.getElementById('cartSubtotal');
+        const checkoutBtn = document.getElementById('proceedToCheckoutBtn');
+        function updateCheckoutBtn() {
+            if (!subtotalElem || !checkoutBtn) return;
+            const subtotal = parseFloat(subtotalElem.textContent.replace(/[^\d.]/g, ''));
+            if (subtotal === 0) {
+                checkoutBtn.classList.add('disabled');
+                checkoutBtn.setAttribute('aria-disabled', 'true');
+            } else {
+                checkoutBtn.classList.remove('disabled');
+                checkoutBtn.removeAttribute('aria-disabled');
+            }
+        }
+        updateCheckoutBtn();
+        // Watch for subtotal changes
+        const observer = new MutationObserver(updateCheckoutBtn);
+        if (subtotalElem) {
+            observer.observe(subtotalElem, { childList: true, characterData: true, subtree: true });
+        }
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function(e) {
+                const subtotal = parseFloat(subtotalElem.textContent.replace(/[^\d.]/g, ''));
+                if (subtotal === 0) {
+                    e.preventDefault();
+                    alert('Your cart is empty. Please add items before proceeding to checkout.');
+                }
+            });
+        }
+    });
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <script type="module" src="../js/cart.js"></script>
 </body>
