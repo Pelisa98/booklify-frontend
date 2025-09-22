@@ -36,7 +36,7 @@ function renderOrders(orders) {
                 <span class="small">${order.orderDate ? new Date(order.orderDate).toLocaleString() : ''}</span>
             </div>
             <div class="card-body">
-                <div class="mb-2"><strong>Status:</strong> ${order.orderStatus || 'N/A'}</div>
+                <div class="mb-2"><strong>Status:</strong> <span class="order-status" data-order-id="${order.orderId}">Loading...</span></div>
                 <div class="mb-2"><strong>Total:</strong> R${order.totalAmount || '0.00'}</div>
                 <div class="mb-2"><strong>Order Items:</strong></div>
                 <ul class="list-group order-items-list mb-2" id="order-items-${order.orderId}">
@@ -48,8 +48,13 @@ function renderOrders(orders) {
         // Fetch and render order items
         const items = await fetchOrderItemsByOrder(order.orderId);
         const itemsList = orderCard.querySelector(`#order-items-${order.orderId}`);
+        const statusSpan = orderCard.querySelector('.order-status[data-order-id="' + order.orderId + '"]');
         if (items && items.length > 0) {
             itemsList.innerHTML = '';
+            // Set status from the first order item
+            if (statusSpan) {
+                statusSpan.textContent = items[0].orderStatus || 'N/A';
+            }
             items.forEach(item => {
                 const itemLi = document.createElement('li');
                 itemLi.className = 'list-group-item';
@@ -57,6 +62,9 @@ function renderOrders(orders) {
                 itemsList.appendChild(itemLi);
             });
         } else {
+            if (statusSpan) {
+                statusSpan.textContent = 'N/A';
+            }
             itemsList.innerHTML = '<li class="list-group-item text-muted">No items found for this order.</li>';
         }
     });
