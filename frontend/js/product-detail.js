@@ -68,9 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     let cart = await CartService.getCartByUserId(userId);
                     if (!cart) {
-                        // Create a new cart for the user using only the user ID (CartCreateDto)
-                        await CartService.createCart(userId);
-                        cart = await CartService.getCartByUserId(userId); // fetch the created cart
+                        // Create a new cart for the user and use the returned cart object
+                        cart = await CartService.createCart(userId);
                     }
                     // Check if book already in cart
                     const existingItem = cart.cartItems.find(item => item.book.bookID === book.bookID);
