@@ -9,80 +9,61 @@
     <link rel="icon" href="/frontend/assets/icons/booklify.ico">
 </head>
 <body>
-    <!-- Header / Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
-        <div class="container d-flex align-items-center justify-content-between">
-            <a class="navbar-brand d-flex align-items-center" href="../index.html">
-                <img src="../assets/images/logo.png" alt="Booklify Logo" height="48" class="me-2">
-                <span class="brand-text">Booklify</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
-                    <li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="products.html">Shop Textbooks</a></li>
-                    <li class="nav-item"><a class="nav-link" href="sell.html">Sell Textbooks</a></li>
-                    <li class="nav-item nav-profile-link" style="display:none;"><a class="nav-link" href="profile.html">Profile</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!-- Payment Section -->
-    <section class="payment-section py-5 bg-light-purple min-vh-100">
-        <div class="container">
-            <h2 class="fw-bold text-center mb-5">Payment Details</h2>
-            <div class="row justify-content-center">
-                <div class="col-lg-6">
-                    <div class="bg-white rounded shadow p-4">
-                        <form id="dummyPaymentForm">
-                            <div class="mb-3">
-                                <label for="paymentType" class="form-label">Payment Method</label>
-                                <select class="form-select" id="paymentType" required>
-                                    <option value="card">Credit/Debit Card</option>
-                                    <option value="eft">EFT</option>
-                                </select>
-                            </div>
-                            <div id="cardFields">
-                                <div class="mb-3">
-                                    <label for="cardNumber" class="form-label">Card Number</label>
-                                    <input type="text" class="form-control" id="cardNumber" maxlength="19" placeholder="1234 5678 9012 3456" required>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="cardExpiry" class="form-label">Expiry Date</label>
-                                        <input type="text" class="form-control" id="cardExpiry" maxlength="5" placeholder="MM/YY" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="cardCVC" class="form-label">CVC</label>
-                                        <input type="text" class="form-control" id="cardCVC" maxlength="4" placeholder="CVC" required>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="eftFields" style="display:none;">
-                                <div class="mb-3">
-                                    <label for="bankName" class="form-label">Bank Name</label>
-                                    <input type="text" class="form-control" id="bankName" placeholder="Bank Name">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="accountNumber" class="form-label">Account Number</label>
-                                    <input type="text" class="form-control" id="accountNumber" placeholder="Account Number">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-purple w-100 fw-bold" id="processPaymentBtn">Process Payment</button>
-                        </form>
-                        <div class="d-flex justify-content-center mt-3" id="loadingSpinner" style="display:none;">
-                            <div class="spinner-border text-primary" role="status" id="spinnerIcon" style="display:none;">
-                                <span class="visually-hidden">Processing...</span>
-                            </div>
-                            <span id="processingMsg" style="display:none; margin-left: 16px; font-weight: 500; color: #4f8cff;">Payment is being processed...</span>
+<!-- Header / Navbar (dynamically generated by navbar.js) -->
+<!-- Payment Section -->
+<section class="payment-section py-5 bg-light-purple min-vh-100">
+    <div class="container">
+        <h2 class="fw-bold text-center mb-5">Payment Details</h2>
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="bg-white rounded shadow p-4">
+                    <form id="dummyPaymentForm">
+                        <div class="mb-3">
+                            <label for="paymentType" class="form-label">Payment Method</label>
+                            <select class="form-select" id="paymentType" required>
+                                <option value="card">Credit/Debit Card</option>
+                                <option value="eft">EFT</option>
+                            </select>
                         </div>
+                        <div id="cardFields">
+                            <div class="mb-3">
+                                <label for="cardNumber" class="form-label">Card Number</label>
+                                <input type="text" class="form-control" id="cardNumber" maxlength="19" placeholder="1234 5678 9012 3456" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="cardExpiry" class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" id="cardExpiry" maxlength="5" placeholder="MM/YY" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="cardCVC" class="form-label">CVC</label>
+                                    <input type="text" class="form-control" id="cardCVC" maxlength="4" placeholder="CVC" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="eftFields" style="display:none;">
+                            <div class="mb-3">
+                                <label for="bankName" class="form-label">Bank Name</label>
+                                <input type="text" class="form-control" id="bankName" placeholder="Bank Name">
+                            </div>
+                            <div class="mb-3">
+                                <label for="accountNumber" class="form-label">Account Number</label>
+                                <input type="text" class="form-control" id="accountNumber" placeholder="Account Number">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-purple w-100 fw-bold" id="processPaymentBtn">Process Payment</button>
+                    </form>
+                    <div class="d-flex justify-content-center mt-3" id="loadingSpinner" style="display:none;">
+                        <div class="spinner-border text-primary" role="status" id="spinnerIcon" style="display:none;">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
+                        <span id="processingMsg" style="display:none; margin-left: 16px; font-weight: 500; color: #4f8cff;">Payment is being processed...</span>
                     </div>
                 </div>
             </div>
         </div>
-        <script>
+    </div>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const paymentType = document.getElementById('paymentType');
             const cardFields = document.getElementById('cardFields');
@@ -106,13 +87,13 @@
             });
 
             form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    processBtn.disabled = true;
-                    loadingSpinner.style.display = 'flex';
-                    spinnerIcon.style.display = 'inline-block';
-                    processingMsg.style.display = 'block';
+                e.preventDefault();
+                processBtn.disabled = true;
+                loadingSpinner.style.display = 'flex';
+                spinnerIcon.style.display = 'inline-block';
+                processingMsg.style.display = 'block';
 
-                    setTimeout(async () => {
+                setTimeout(async () => {
                     try {
                         const userId = localStorage.getItem('booklifyUserId');
                         const paymentMethod = localStorage.getItem('booklifyPaymentMethod') || (paymentType.value === 'card' ? 'CARD' : 'EFT');
@@ -162,7 +143,7 @@
                         processBtn.disabled = false;
                         alert('Payment successful! Thank you for your purchase.');
                         window.location.href = 'products.html';
-                                } finally {
+                    } finally {
                         spinnerIcon.style.display = 'none';
                         processingMsg.style.display = 'none';
                         loadingSpinner.style.display = 'none';
@@ -171,99 +152,9 @@
                 }, 2000);
             });
         });
-        </script>
-    </section>
-    <!-- Footer -->
-    <footer class="footer-section bg-dark text-light pt-5 pb-3 mt-5">
-                e.preventDefault();
-                // Card validation if card selected
-                if (paymentType.value === 'card') {
-                    const cardNumber = document.getElementById('cardNumber').value.replace(/\s+/g, '');
-                    const expiry = document.getElementById('cardExpiry').value.trim();
-                    const cvc = document.getElementById('cardCVC').value.trim();
-                    // Card number: 16 digits
-                    if (!/^\d{16}$/.test(cardNumber)) {
-                        alert('Please enter a valid 16-digit card number.');
-                        return;
-                    }
-                    // Expiry: MM/YY, valid month, not expired (basic check)
-                    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-                        alert('Please enter expiry as MM/YY.');
-                        return;
-                    }
-                    const [mm, yy] = expiry.split('/').map(Number);
-                    if (mm < 1 || mm > 12) {
-                        alert('Invalid expiry month.');
-                        return;
-                    }
-                    // CVC: 3 or 4 digits
-                    if (!/^\d{3,4}$/.test(cvc)) {
-                        alert('Please enter a valid CVC (3 or 4 digits).');
-                        return;
-                    }
-                }
-                processBtn.disabled = true;
-                if (spinnerIcon) spinnerIcon.style.display = 'inline-block';
-                if (processingMsg) processingMsg.style.display = 'block';
-                loadingSpinner.style.display = 'flex';
+    </script>
+</section>
 
-                // Simulate payment processing delay
-                setTimeout(async () => {
-                    try {
-                        const userId = localStorage.getItem('booklifyUserId');
-                        const paymentMethod = localStorage.getItem('booklifyPaymentMethod') || (paymentType.value === 'card' ? 'CARD' : 'EFT');
-                        // Fetch address for user (should exist from checkout)
-                        const addressRes = await fetch(`http://localhost:8081/api/addresses/user/${userId}`);
-                        if (!addressRes.ok) throw new Error('Address not found');
-                        const address = await addressRes.json();
-                        const addressId = address.id;
-                        // Fetch cart
-                        const cartRes = await fetch(`http://localhost:8081/api/cart/getByUserId/${userId}`);
-                        if (!cartRes.ok) throw new Error('Cart not found');
-                        const cart = await cartRes.json();
-                        // Build order items
-                        const orderItems = (cart.cartItems || []).map(item => ({
-                            bookId: item.book.bookID,
-                            quantity: item.quantity,
-                            orderStatus: 'PENDING'
-                        }));
-                        // Create order
-                        const orderRes = await fetch('http://localhost:8081/api/orders/create', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                regularUserId: userId,
-                                shippingAddressId: addressId,
-                                orderItems
-                            })
-                        });
-                        if (!orderRes.ok) throw new Error('Order creation failed');
-                        const order = await orderRes.json();
-                        // Create payment
-                        const paymentRes = await fetch('http://localhost:8081/api/payments/create', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId,
-                                orderId: order.orderId,
-                                paymentMethod
-                            })
-                        });
-                        if (!paymentRes.ok) throw new Error('Payment failed');
-                        // Optionally clear cart (delete or empty)
-                        await fetch(`http://localhost:8081/api/cart/clear/${cart.cartId}`, { method: 'DELETE' });
-
-                        if (spinnerIcon) spinnerIcon.style.display = 'none';
-                        if (processingMsg) processingMsg.style.display = 'none';
-                        loadingSpinner.style.display = 'none';
-                        processBtn.disabled = false;
-                        alert('Payment successful! Thank you for your purchase.');
-                        window.location.href = 'products.html';
-                    } catch (err) {
-                        if (spinnerIcon) spinnerIcon.style.display = 'none';
-                        if (processingMsg) processingMsg.style.display = 'none';
-                        loadingSpinner.style.display = 'none';
-                        processBtn.disabled = false;
-                        alert('Payment failed: ' + err.message);
-                    }
-                }, 2000);
+    <script src="../js/navbar.js"></script>
+</body>
+</html>
