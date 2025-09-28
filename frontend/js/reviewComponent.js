@@ -56,7 +56,7 @@ class ReviewComponent {
         if (!container) return;
 
         const averageRating = ReviewService.calculateAverageRating(this.reviews);
-        
+
         container.innerHTML = `
             <div class="review-section bg-white rounded shadow p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -104,7 +104,7 @@ class ReviewComponent {
 
         const isEditing = this.currentReview !== null;
         const review = this.currentReview || {};
-        
+
         return `
             <div class="review-form mb-4" id="reviewForm" style="display: ${isEditing ? 'block' : 'none'};">
                 <div class="card border-0 bg-light">
@@ -117,7 +117,7 @@ class ReviewComponent {
                             <div class="mb-3">
                                 <label class="form-label">Rating</label>
                                 <div class="rating-input">
-                                    ${this.renderRatingStars(review.rating || 0, 'ratingInput')}
+                                    ${this.renderRatingStars(review.reviewRating || review.rating || 0, 'ratingInput')}
                                 </div>
                             </div>
                             
@@ -129,7 +129,7 @@ class ReviewComponent {
                                     rows="3" 
                                     placeholder="Share your thoughts about this book..."
                                     required
-                                >${review.comment || ''}</textarea>
+                                >${review.reviewComment || review.comment || ''}</textarea>
                             </div>
                             
                             <div class="d-flex gap-2">
@@ -184,12 +184,12 @@ class ReviewComponent {
     }
 
     renderReviewItem(review) {
-        const isOwnReview = review.userId === this.currentUser.id;
+        const isOwnReview = (review.user && review.user.userId) === this.currentUser.id;
         const userType = review.userType === 'seller' ? 'Seller' : 'Buyer';
         const reviewType = review.reviewType === 'pre-listing' ? 'Pre-listing Review' : 'Purchase Review';
-        
+
         return `
-            <div class="review-item border-bottom pb-3 mb-3">
+            <div class="review-item border-bottom pb-3 mb-3" data-review-id="${review.reviewId || review.id}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
                         <strong class="me-2">${review.userName || 'Anonymous'}</strong>
@@ -197,23 +197,23 @@ class ReviewComponent {
                         <span class="badge bg-secondary">${reviewType}</span>
                     </div>
                     <div class="d-flex align-items-center">
-                        ${ReviewService.renderStars(review.rating)}
+                        ${ReviewService.renderStars(review.reviewRating || review.rating)}
                         ${isOwnReview ? `
                             <div class="ms-2">
-                                <button class="btn btn-sm btn-outline-primary" onclick="reviewComponent.editReview('${review.id}')">
+                                <button class="btn btn-sm btn-outline-primary edit-review-btn" data-review-id="${review.reviewId || review.id}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="reviewComponent.deleteReview('${review.id}')">
+                                <button class="btn btn-sm btn-outline-danger delete-review-btn" data-review-id="${review.reviewId || review.id}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         ` : ''}
                     </div>
                 </div>
-                <p class="mb-1">${review.comment}</p>
+                <p class="mb-1">${review.reviewComment || review.comment}</p>
                 <small class="text-muted">
                     <i class="bi bi-calendar me-1"></i>
-                    ${new Date(review.createdAt).toLocaleDateString()}
+                    ${new Date(review.reviewDate || review.createdAt).toLocaleDateString()}
                 </small>
             </div>
         `;
@@ -243,6 +243,23 @@ class ReviewComponent {
         if (reviewForm) {
             reviewForm.addEventListener('submit', (e) => this.handleReviewSubmission(e));
         }
+
+        // Edit and delete buttons for individual reviews
+        const editButtons = document.querySelectorAll('.edit-review-btn');
+        editButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const reviewId = e.target.closest('.edit-review-btn').getAttribute('data-review-id');
+                this.editReview(reviewId);
+            });
+        });
+
+        const deleteButtons = document.querySelectorAll('.delete-review-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const reviewId = e.target.closest('.delete-review-btn').getAttribute('data-review-id');
+                this.deleteReview(reviewId);
+            });
+        });
     }
 
     showReviewForm(isEditing = false) {
@@ -250,7 +267,7 @@ class ReviewComponent {
         if (reviewForm) {
             reviewForm.style.display = 'block';
         }
-        
+
         if (isEditing) {
             document.getElementById('writeReviewBtn').style.display = 'none';
         }
@@ -261,7 +278,7 @@ class ReviewComponent {
         if (reviewForm) {
             reviewForm.style.display = 'none';
         }
-        
+
         const writeReviewBtn = document.getElementById('writeReviewBtn');
         if (writeReviewBtn) {
             writeReviewBtn.style.display = 'block';
@@ -270,15 +287,15 @@ class ReviewComponent {
 
     async handleReviewSubmission(e) {
         e.preventDefault();
-        
+
         const rating = parseInt(document.getElementById('ratingInput').value);
         const comment = document.getElementById('reviewComment').value.trim();
-        
+
         if (!rating || rating < 1 || rating > 5) {
             alert('Please select a valid rating (1-5 stars)');
             return;
         }
-        
+
         if (!comment) {
             alert('Please write a comment for your review');
             return;
@@ -288,15 +305,13 @@ class ReviewComponent {
             const reviewData = {
                 bookId: this.bookId,
                 userId: this.currentUser.id,
-                userType: this.determineUserType(),
                 rating: rating,
-                comment: comment,
-                reviewType: this.determineReviewType()
+                comment: comment
             };
 
             if (this.currentReview) {
                 // Update existing review
-                await ReviewService.updateReview(this.currentReview.id, { rating, comment });
+                await ReviewService.updateReview(this.currentReview.reviewId || this.currentReview.id, { rating, comment });
                 alert('Review updated successfully!');
             } else {
                 // Create new review
@@ -307,10 +322,11 @@ class ReviewComponent {
             // Reload reviews and re-render
             await this.loadReviews();
             this.renderReviewSection();
-            
+
         } catch (error) {
             console.error('Review submission error:', error);
-            alert('Failed to submit review. Please try again.');
+            const errorMessage = error.message || 'Failed to submit review. Please try again.';
+            alert(`Error: ${errorMessage}`);
         }
     }
 
@@ -348,14 +364,14 @@ class ReviewComponent {
         try {
             await ReviewService.deleteReview(reviewId);
             alert('Review deleted successfully!');
-            
+
             // Reload reviews and re-render
             await this.loadReviews();
             this.renderReviewSection();
-            
+
         } catch (error) {
             console.error('Failed to delete review:', error);
-            alert('Failed to delete review');
+            alert('Failed to delete review: ' + error.message);
         }
     }
 }

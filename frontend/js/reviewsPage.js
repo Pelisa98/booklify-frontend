@@ -9,11 +9,15 @@ class ReviewsPage {
 
     getCurrentUser() {
         const userData = JSON.parse(localStorage.getItem('booklifyUserData') || '{}');
+        const userRole = localStorage.getItem('booklifyUserRole');
+        const userId = localStorage.getItem('booklifyUserId');
+        const adminId = localStorage.getItem('booklifyAdminId');
+
         return {
-            id: localStorage.getItem('booklifyUserId'),
+            id: userRole === 'admin' ? adminId : userId,
             email: localStorage.getItem('booklifyUserEmail'),
-            fullName: userData.fullName,
-            role: localStorage.getItem('booklifyUserRole')
+            fullName: userData.fullName || userData.name,
+            role: userRole
         };
     }
 
@@ -24,15 +28,25 @@ class ReviewsPage {
             return;
         }
 
+        // Check if user is admin
+        if (this.currentUser.role !== 'admin') {
+            alert('Access denied. This page is for administrators only.');
+            window.location.href = '../index.html';
+            return;
+        }
+
         // Load user reviews
         await this.loadUserReviews();
-        
+
         // Setup event listeners
         this.setupEventListeners();
-        
+
+        // Populate filter dropdowns
+        this.populateFilters();
+
         // Update stats
         this.updateStats();
-        
+
         // Render reviews
         this.renderReviews();
     }
@@ -40,10 +54,13 @@ class ReviewsPage {
     async loadUserReviews() {
         try {
             this.showLoading(true);
-            this.userReviews = await ReviewService.getReviewsByUser(this.currentUser.id);
+            console.log('Loading all reviews for admin...');
+            // For admin, load all reviews instead of just user's reviews
+            this.userReviews = await ReviewService.getAllReviews();
+            console.log('Reviews loaded:', this.userReviews);
             this.filteredReviews = [...this.userReviews];
         } catch (error) {
-            console.error('Failed to load user reviews:', error);
+            console.error('Failed to load reviews:', error);
             this.userReviews = [];
             this.filteredReviews = [];
         } finally {
@@ -52,16 +69,22 @@ class ReviewsPage {
     }
 
     setupEventListeners() {
-        // Review type filter
-        const reviewTypeFilter = document.getElementById('reviewTypeFilter');
-        if (reviewTypeFilter) {
-            reviewTypeFilter.addEventListener('change', () => this.applyFilters());
-        }
-
         // Rating filter
         const ratingFilter = document.getElementById('ratingFilter');
         if (ratingFilter) {
             ratingFilter.addEventListener('change', () => this.applyFilters());
+        }
+
+        // Book filter
+        const bookFilter = document.getElementById('bookFilter');
+        if (bookFilter) {
+            bookFilter.addEventListener('change', () => this.applyFilters());
+        }
+
+        // User filter
+        const userFilter = document.getElementById('userFilter');
+        if (userFilter) {
+            userFilter.addEventListener('change', () => this.applyFilters());
         }
 
         // Search filter
@@ -69,27 +92,43 @@ class ReviewsPage {
         if (searchInput) {
             searchInput.addEventListener('input', () => this.applyFilters());
         }
+
+        // Logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.clear();
+                window.location.href = 'login.html';
+            });
+        }
     }
 
     applyFilters() {
-        const reviewType = document.getElementById('reviewTypeFilter').value;
         const rating = document.getElementById('ratingFilter').value;
+        const bookFilter = document.getElementById('bookFilter').value;
+        const userFilter = document.getElementById('userFilter').value;
         const search = document.getElementById('searchReviews').value.toLowerCase();
 
         this.filteredReviews = this.userReviews.filter(review => {
-            // Review type filter
-            if (reviewType && review.reviewType !== reviewType) {
+            // Rating filter
+            if (rating && (review.reviewRating || review.rating) < parseInt(rating)) {
                 return false;
             }
 
-            // Rating filter
-            if (rating && review.rating < parseInt(rating)) {
+            // Book filter
+            if (bookFilter && review.book && review.book.bookID != bookFilter) {
+                return false;
+            }
+
+            // User filter
+            if (userFilter && review.user && review.user.id != userFilter) {
                 return false;
             }
 
             // Search filter
             if (search) {
-                const searchText = `${review.comment} ${review.bookTitle || ''}`.toLowerCase();
+                const searchText = `${review.reviewComment || review.comment} ${review.book?.title || ''} ${review.user?.fullName || ''}`.toLowerCase();
                 if (!searchText.includes(search)) {
                     return false;
                 }
@@ -104,7 +143,7 @@ class ReviewsPage {
     updateStats() {
         const totalReviews = this.userReviews.length;
         const averageRating = ReviewService.calculateAverageRating(this.userReviews);
-        const uniqueBooks = new Set(this.userReviews.map(r => r.bookId)).size;
+        const uniqueBooks = new Set(this.userReviews.map(r => r.book?.bookID || r.bookId)).size;
 
         document.getElementById('totalReviews').textContent = totalReviews;
         document.getElementById('averageRating').textContent = averageRating.toFixed(1);
@@ -152,39 +191,45 @@ class ReviewsPage {
     }
 
     renderReviewItem(review) {
-        const userType = review.userType === 'seller' ? 'Seller' : 'Buyer';
-        const reviewType = review.reviewType === 'pre-listing' ? 'Pre-listing Review' : 'Purchase Review';
-        const userTypeColor = review.userType === 'seller' ? 'success' : 'primary';
-        
+        const bookTitle = review.book?.title || 'Unknown Book';
+        const userName = review.user?.fullName || 'Unknown User';
+        const userEmail = review.user?.email || '';
+
         return `
-            <div class="review-item border-bottom p-4" data-review-id="${review.id}">
+            <div class="review-item border-bottom p-4" data-review-id="${review.reviewId || review.id}">
                 <div class="row">
                     <div class="col-md-8">
                         <div class="d-flex align-items-start mb-2">
-                            <div class="me-3">
-                                <span class="badge bg-${userTypeColor} me-2">${userType}</span>
-                                <span class="badge bg-secondary">${reviewType}</span>
+                            <div class="rating-display me-3">
+                                ${ReviewService.renderStars(review.reviewRating || review.rating)}
                             </div>
-                            <div class="rating-display">
-                                ${ReviewService.renderStars(review.rating)}
+                            <div>
+                                <span class="badge bg-primary me-2">${review.reviewRating || review.rating} Stars</span>
                             </div>
                         </div>
                         
-                        <h6 class="fw-bold mb-2">${review.bookTitle || 'Book Title'}</h6>
-                        <p class="mb-2">${review.comment}</p>
+                        <h6 class="fw-bold mb-2">${bookTitle}</h6>
+                        <p class="mb-2">${review.reviewComment || review.comment}</p>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <i class="bi bi-person me-1"></i>
+                                <strong>User:</strong> ${userName} (${userEmail})
+                            </small>
+                        </div>
                         
                         <small class="text-muted">
                             <i class="bi bi-calendar me-1"></i>
-                            Reviewed on ${new Date(review.createdAt).toLocaleDateString()}
+                            Reviewed on ${new Date(review.reviewDate || review.createdAt).toLocaleDateString()}
                         </small>
                     </div>
                     
                     <div class="col-md-4 text-md-end">
                         <div class="btn-group-vertical btn-group-sm">
-                            <button class="btn btn-outline-primary mb-1" onclick="reviewsPage.editReview('${review.id}')">
+                            <button class="btn btn-outline-primary mb-1" onclick="reviewsPage.editReview('${review.reviewId || review.id}')">
                                 <i class="bi bi-pencil me-1"></i>Edit
                             </button>
-                            <button class="btn btn-outline-danger" onclick="reviewsPage.deleteReview('${review.id}')">
+                            <button class="btn btn-outline-danger" onclick="reviewsPage.deleteReview('${review.reviewId || review.id}')">
                                 <i class="bi bi-trash me-1"></i>Delete
                             </button>
                         </div>
@@ -194,19 +239,51 @@ class ReviewsPage {
         `;
     }
 
+    populateFilters() {
+        // Populate book filter
+        const bookFilter = document.getElementById('bookFilter');
+        if (bookFilter) {
+            const uniqueBooks = [...new Set(this.userReviews.map(r => r.book?.bookID || r.bookId).filter(Boolean))];
+            const bookTitles = [...new Set(this.userReviews.map(r => r.book?.title).filter(Boolean))];
+
+            uniqueBooks.forEach((bookId, index) => {
+                const option = document.createElement('option');
+                option.value = bookId;
+                option.textContent = bookTitles[index] || `Book ${bookId}`;
+                bookFilter.appendChild(option);
+            });
+        }
+
+        // Populate user filter
+        const userFilter = document.getElementById('userFilter');
+        if (userFilter) {
+            const uniqueUsers = [...new Set(this.userReviews.map(r => r.user?.id).filter(Boolean))];
+            const userNames = [...new Set(this.userReviews.map(r => r.user?.fullName).filter(Boolean))];
+
+            uniqueUsers.forEach((userId, index) => {
+                const option = document.createElement('option');
+                option.value = userId;
+                option.textContent = userNames[index] || `User ${userId}`;
+                userFilter.appendChild(option);
+            });
+        }
+    }
+
     attachReviewEventListeners() {
         // Event listeners are attached via onclick attributes in the rendered HTML
     }
 
     async editReview(reviewId) {
         try {
+            console.log('Editing review with ID:', reviewId);
             const review = await ReviewService.getReviewById(reviewId);
+            console.log('Review loaded for editing:', review);
             if (review) {
                 this.showEditModal(review);
             }
         } catch (error) {
             console.error('Failed to load review for editing:', error);
-            alert('Failed to load review for editing');
+            alert('Failed to load review for editing: ' + error.message);
         }
     }
 
@@ -225,7 +302,7 @@ class ReviewsPage {
                                 <div class="mb-3">
                                     <label class="form-label">Rating</label>
                                     <div class="rating-input">
-                                        ${this.renderRatingStars(review.rating, 'editRatingInput')}
+                                        ${this.renderRatingStars(review.reviewRating || review.rating, 'editRatingInput')}
                                     </div>
                                 </div>
                                 
@@ -236,13 +313,13 @@ class ReviewsPage {
                                         id="editReviewComment" 
                                         rows="3" 
                                         required
-                                    >${review.comment}</textarea>
+                                    >${review.reviewComment || review.comment}</textarea>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="reviewsPage.updateReview('${review.id}')">Update Review</button>
+                            <button type="button" class="btn btn-primary" onclick="reviewsPage.updateReview('${review.reviewId || review.id}')">Update Review</button>
                         </div>
                     </div>
                 </div>
@@ -281,8 +358,11 @@ class ReviewsPage {
 
     async updateReview(reviewId) {
         try {
+            console.log('Updating review with ID:', reviewId);
             const rating = parseInt(document.getElementById('editRatingInput').value);
             const comment = document.getElementById('editReviewComment').value.trim();
+
+            console.log('Update data:', { rating, comment });
 
             if (!rating || rating < 1 || rating > 5) {
                 alert('Please select a valid rating (1-5 stars)');
@@ -295,7 +375,7 @@ class ReviewsPage {
             }
 
             await ReviewService.updateReview(reviewId, { rating, comment });
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editReviewModal'));
             modal.hide();
@@ -308,7 +388,8 @@ class ReviewsPage {
             alert('Review updated successfully!');
         } catch (error) {
             console.error('Failed to update review:', error);
-            alert('Failed to update review. Please try again.');
+            const errorMessage = error.message || 'Failed to update review. Please try again.';
+            alert(`Error: ${errorMessage}`);
         }
     }
 
@@ -319,7 +400,7 @@ class ReviewsPage {
 
         try {
             await ReviewService.deleteReview(reviewId);
-            
+
             // Reload reviews
             await this.loadUserReviews();
             this.updateStats();
@@ -328,7 +409,8 @@ class ReviewsPage {
             alert('Review deleted successfully!');
         } catch (error) {
             console.error('Failed to delete review:', error);
-            alert('Failed to delete review. Please try again.');
+            const errorMessage = error.message || 'Failed to delete review. Please try again.';
+            alert(`Error: ${errorMessage}`);
         }
     }
 

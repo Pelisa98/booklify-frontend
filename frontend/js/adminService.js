@@ -162,18 +162,14 @@ class AdminService {
     // Helper to fetch admin by email (assuming unique email)
     static async getAdminProfileByEmail(email) {
         const token = localStorage.getItem('booklifyToken');
-        const response = await fetch(`${API_BASE_URL}/users/email?email=${encodeURIComponent(email)}`, {
+        const response = await fetch(`${API_BASE_URL}/getByEmail?email=${encodeURIComponent(email)}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
         if (!response.ok) return null;
-        const admins = await response.json();
-        // If the endpoint returns a list, find the admin with the matching email
-        if (Array.isArray(admins)) {
-            return admins.find(a => a.email === email) || admins[0];
-        }
-        return admins;
+        const admin = await response.json();
+        return admin;
     }
 
     static async register(adminData) {

@@ -1,19 +1,33 @@
-/* Booklify Custom Styles */
+/* ========================================
+   Booklify Custom Styles
+   ======================================== */
 
+/* ========================================
+   CSS Variables
+   ======================================== */
 :root {
+    /* Brand Colors */
     --booklify-purple: #a084e8;
     --booklify-light-purple: #f3eefe;
     --booklify-dark: #343434;
     --booklify-accent: #f7c873;
+
+    /* Layout Colors */
     --booklify-footer-bg: #343434;
     --booklify-footer-link: #f7c873;
+
+    /* Effects */
     --booklify-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
     --booklify-shadow-hover: 0 4px 24px rgba(160, 132, 232, 0.15);
+
+    /* Border Radius */
     --booklify-radius: 0.5rem;
     --booklify-radius-lg: 1rem;
 }
 
-/* Global Styles */
+/* ========================================
+   Global Styles
+   ======================================== */
 body {
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     background: #fff;
@@ -21,7 +35,9 @@ body {
     line-height: 1.6;
 }
 
-/* Typography */
+/* ========================================
+   Typography
+   ======================================== */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     margin-bottom: 1rem;
@@ -42,7 +58,9 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--booklify-light-purple) !important;
 }
 
-/* Buttons */
+/* ========================================
+   Buttons
+   ======================================== */
 .btn {
     font-size: 1rem;
     padding: 0.75em 2em;
@@ -63,7 +81,8 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: var(--booklify-shadow);
 }
 
-.btn-purple:hover, .btn-purple:focus {
+.btn-purple:hover,
+.btn-purple:focus {
     background: #8661c1 !important;
     box-shadow: var(--booklify-shadow-hover);
     transform: translateY(-2px);
@@ -75,7 +94,8 @@ h1, h2, h3, h4, h5, h6 {
     border: 2px solid var(--booklify-purple) !important;
 }
 
-.btn-outline-purple:hover, .btn-outline-purple:focus {
+.btn-outline-purple:hover,
+.btn-outline-purple:focus {
     background: var(--booklify-purple) !important;
     color: #fff !important;
     transform: translateY(-2px);
@@ -85,7 +105,9 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--booklify-purple) !important;
 }
 
-/* Profile Page Styles */
+/* ========================================
+   Profile Page Styles
+   ======================================== */
 .profile-section .rounded-lg {
     border-radius: 1rem !important;
 }
@@ -121,38 +143,24 @@ h1, h2, h3, h4, h5, h6 {
 .profile-section .list-group-item:last-child {
     border-bottom: none;
 }
-.btn-purple:hover, .btn-purple:focus {
-    background: #8661c1 !important;
-    color: #fff !important;
-}
-.btn-outline-purple {
-    background: var(--booklify-purple) !important;
-    color: #fff !important;
-    border: none !important;
-    font-size: 1.15rem;
-    border-radius: 0.5rem;
-    padding: 0.75em 2em;
-    font-weight: 700;
-    box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
-    margin-top: 1.5rem;
-}
-.btn-outline-purple:hover, .btn-outline-purple:focus {
-    background: #8661c1 !important;
-    color: #fff !important;
-}
 
-/* Hero Section */
+/* ========================================
+   Hero Section
+   ======================================== */
 .hero-section {
     background: var(--booklify-light-purple);
     position: relative;
 }
+
 .hero-section .display-5 {
     font-size: 2.5rem;
 }
+
 .hero-img-wrapper {
     position: relative;
     min-height: 320px;
 }
+
 .hero-img-wrapper img {
     width: 100%;
     max-width: 420px;
@@ -172,8 +180,9 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1.4rem;
 }
 
-/* Features Section */
-/* Feature Cards */
+/* ========================================
+   Features Section
+   ======================================== */
 .feature-card {
     background: var(--booklify-light-purple);
     padding: 2rem;
@@ -187,39 +196,49 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
     transition: all 0.3s ease;
 }
+
 .features-section .feature-card:hover {
     box-shadow: 0 4px 24px rgba(160, 132, 232, 0.15);
     transform: translateY(-4px) scale(1.02);
 }
+
 .feature-icon {
     font-size: 2.5rem;
     color: var(--booklify-purple);
 }
+
 .feature-link {
     color: var(--booklify-purple);
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s;
 }
+
 .feature-link:hover {
     color: #8661c1;
     text-decoration: underline;
 }
 
-/* How It Works */
+/* ========================================
+   How It Works Section
+   ======================================== */
 .how-it-works-section {
     background: var(--booklify-light-purple);
 }
+
 .how-list {
     padding-left: 1.2rem;
     margin-bottom: 0;
 }
+
 .how-list li {
     margin-bottom: 1rem;
     font-size: 1.05rem;
 }
 
-/* Academic Journey */
+/* ========================================
+   Academic Journey Section
+   ======================================== */
 .academic-journey-section .badge {
     font-size: 1rem;
     padding: 0.6em 1.2em;
@@ -227,8 +246,9 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 2px 8px rgba(160, 132, 232, 0.08);
 }
 
-/* Footer */
-/* Footer */
+/* ========================================
+   Footer
+   ======================================== */
 .footer-section {
     background: var(--booklify-footer-bg);
     color: #fff;
@@ -270,27 +290,36 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 1.5rem;
 }
 
-/* Responsive Tweaks */
+/* ========================================
+   Responsive Design
+   ======================================== */
 @media (max-width: 991px) {
     .hero-section .display-5 {
         font-size: 2rem;
     }
+
     .hero-img-fit {
         max-height: 220px;
     }
+
     .features-section .feature-card {
         padding: 1.5rem 1rem;
     }
 }
+
 @media (max-width: 767px) {
     .hero-img-wrapper img {
         max-width: 100%;
     }
+
     .footer-section .brand-text {
         font-size: 1.5rem;
     }
 }
 
+/* ========================================
+   Styled Steps
+   ======================================== */
 .styled-steps .step-number {
     display: inline-flex;
     align-items: center;
@@ -306,13 +335,16 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 50% !important;
     box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
 }
+
 .styled-steps li {
     display: flex;
     align-items: center;
     margin-bottom: 2em;
 }
 
-/* Sticky Navbar */
+/* ========================================
+   Navigation
+   ======================================== */
 .sticky-navbar {
     position: sticky;
     top: 0;
@@ -321,7 +353,9 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 2px 8px rgba(160, 132, 232, 0.10);
 }
 
-/* Slide Animation for Login/Register */
+/* ========================================
+   Login/Register Forms
+   ======================================== */
 .login-register-wrapper {
     display: flex;
     justify-content: center;
@@ -329,6 +363,7 @@ h1, h2, h3, h4, h5, h6 {
     min-height: 60vh;
     position: relative;
 }
+
 .login-register-wrapper .login-col,
 .login-register-wrapper .register-col {
     flex: 1 1 0;
@@ -339,37 +374,136 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     z-index: 1;
 }
+
 .login-register-wrapper .register-col {
     display: none;
     opacity: 0;
     transform: translateX(60px);
 }
+
 .login-register-wrapper.center-login .login-col {
     margin: 0 auto;
     transform: translateX(0);
     opacity: 1;
 }
+
 .login-register-wrapper.center-login .register-col {
     display: none;
     opacity: 0;
     transform: translateX(60px);
 }
+
 .login-register-wrapper.show-register .login-col {
     display: block;
     transform: translateX(-60px);
     opacity: 0.7;
 }
+
 .login-register-wrapper.show-register .register-col {
     display: block;
     transform: translateX(0);
     opacity: 1;
 }
+
 .login-register-wrapper.show-register {
     justify-content: space-between;
     gap: 2rem;
 }
 
-/* Review System Styles */
+/* ========================================
+   Review System
+   ======================================== */
+
+/* Review container */
+#reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Each review card */
+.review-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+    max-width: 600px;
+    width: 100%;
+    margin: 1rem auto;   /* add vertical spacing between reviews */
+}
+
+.review-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Review header (top section: stars/name left, buttons right) */
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+/* Stars + reviewer name */
+.review-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+/* Stars style */
+.stars {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+/* Edit/Delete button group */
+.review-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.review-actions .btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Button colors */
+.btn-outline-primary {
+    border: 1px solid #0d6efd;
+    color: #0d6efd;
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.btn-outline-danger {
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    background: transparent;
+}
+
+.btn-outline-danger:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
+/* Review text */
+.review-text {
+    margin: 0;
+    text-align: left;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
 .review-section {
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -419,3 +553,61 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: 1px solid #e9ecef;
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
 }
+/* ========================================
+   Reviews Summary
+   ======================================== */
+.reviews-summary {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.reviews-summary-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.reviews-left {
+    flex: 1;
+    min-width: 250px;
+    text-align: center;
+    border-right: 1px solid #ddd;
+    padding-right: 2rem;
+}
+
+.reviews-left .star-rating {
+    font-size: 1.5rem;
+    color: #8dc63f;
+}
+
+.reviews-right {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+    padding-left: 2rem;
+}
+
+.reviews-right .btn {
+    border-radius: 4px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+
+/* Reviews Summary - Mobile Responsive */
+@media (max-width: 576px) {
+    .reviews-left {
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        padding-right: 0;
+        padding-bottom: 1rem;
+    }
+
+    .reviews-right {
+        padding-left: 0;
+        padding-top: 1rem;
+    }
+}
+
+

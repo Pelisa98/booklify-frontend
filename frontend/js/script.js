@@ -130,11 +130,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
             `;
-            
-            // Initialize the review component
-            if (typeof ReviewComponent !== 'undefined') {
-                window.reviewComponent = new ReviewComponent('reviewContainer', book.id);
-            }
+
+            // Review functionality is now handled by product-detail.js
         } else {
             productDetailContainer.innerHTML = '<div class="alert alert-danger">Book not found.</div>';
         }
@@ -178,6 +175,4 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
-    // Add more Booklify JS here...
 }); 
