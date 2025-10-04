@@ -155,14 +155,20 @@ class ProductDetailController {
                 await CartService.updateCart(cart);
             }
 
-            alert('Book added to cart!');
+           // Show Bootstrap toast instead of alert
+   const toastEl = document.getElementById('cartToast');
+const toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+toast.show();
+
 
             // Refresh cart badge in navbar
             if (window.NavbarComponent) {
                 window.NavbarComponent.refreshCartBadge();
             }
+setTimeout(() => {
+    window.location.href = 'cart.html';
+}, 1500); // 1.5 seconds delay
 
-            window.location.href = 'cart.html';
         } catch (error) {
             console.error('Failed to add to cart:', error);
             alert('Failed to add to cart: ' + error.message);
