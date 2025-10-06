@@ -345,23 +345,75 @@ class AdminService {
     static async getUserById(userId) {
         try {
             const token = localStorage.getItem('booklifyToken');
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            const isLoggedIn = localStorage.getItem('booklifyLoggedIn');
+            const userRole = localStorage.getItem('booklifyUserRole');
+            
+            console.log('Debug - Admin authentication status:', {
+                hasToken: !!token,
+                isLoggedIn: isLoggedIn,
+                userRole: userRole,
+                tokenStart: token ? token.substring(0, 10) + '...' : 'null'
+            });
+
+            if (!token) {
+                throw new Error('No authentication token found. Please login as admin.');
+            }
+
+            if (userRole !== 'admin') {
+                throw new Error('Insufficient permissions. Admin access required.');
+            }
+
+            // Since /users/{id} endpoint might not exist, fetch all users and filter
+            const response = await fetch(`${API_BASE_URL}/users/all`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             if (!response.ok) {
-                throw new Error('Failed to fetch user');
+                if (response.status === 403) {
+                    throw new Error('Access forbidden. Please re-login as admin.');
+                }
+                if (response.status === 401) {
+                    throw new Error('Authentication failed. Please re-login as admin.');
+                }
+                throw new Error(`Failed to fetch users (Status: ${response.status})`);
             }
 
-            return await response.json();
+            const allUsers = await response.json();
+            const user = allUsers.find(u => u.id == userId);
+            
+            if (!user) {
+                throw new Error(`User with ID ${userId} not found.`);
+            }
+
+            return user;
         } catch (error) {
             console.error('Get user error:', error);
             throw error;
         }
     }
 
+    // Check if admin is properly authenticated
+    static isAdminAuthenticated() {
+        const token = localStorage.getItem('booklifyToken');
+        const isLoggedIn = localStorage.getItem('booklifyLoggedIn');
+        const userRole = localStorage.getItem('booklifyUserRole');
+        
+        return !!(token && isLoggedIn === 'true' && userRole === 'admin');
+    }
+
+    // Redirect to login if not authenticated
+    static checkAuthAndRedirect() {
+        if (!this.isAdminAuthenticated()) {
+            alert('Your admin session has expired. Please login again.');
+            window.location.href = 'adminLogIn.html';
+            return false;
+        }
+        return true;
+    }
 
     // --- Order Management Methods ---
 
@@ -439,5 +491,74 @@ class AdminService {
         });
         if (!response.ok) throw new Error('Failed to calculate revenue by date range');
         return await response.json();
+    }
+
+    // Method to get recent activities by aggregating data from multiple sources
+    static async getRecentActivities(limit = 10) {
+        try {
+            const activities = [];
+            
+            // Get recent users (assuming newest first from API)
+            const users = await this.getAllUsers();
+            const recentUsers = users.slice(0, 3).map(user => ({
+                action: 'User Registration',
+                user: user.fullName || user.email,
+                details: `New user joined: ${user.email}`,
+                date: user.dateJoined || user.createdAt,
+                type: 'user_registration',
+                icon: 'bi-person-plus'
+            }));
+
+            // Get recent books (assuming newest first from API)
+            const books = await this.getAllBooks();
+            const recentBooks = books.slice(0, 3).map(book => ({
+                action: 'Book Upload',
+                user: book.uploadedBy || book.seller?.fullName || 'Unknown User',
+                details: `New book listed: ${book.title}`,
+                date: book.datePosted || book.createdAt,
+                type: 'book_upload',
+                icon: 'bi-book-fill'
+            }));
+
+            // Get recent orders
+            const orders = await this.viewAllOrders();
+            const recentOrders = orders.slice(0, 3).map(order => ({
+                action: 'New Order',
+                user: order.regularUser?.fullName || order.regularUser?.email || 'Unknown User',
+                details: `Order #${order.orderId} placed - R${order.totalAmount?.toFixed(2) || '0.00'}`,
+                date: order.orderDate || order.createdAt,
+                type: 'order_created',
+                icon: 'bi-cart-plus'
+            }));
+
+            // Get recent order items for status changes
+            const orderItems = await this.viewAllOrderItems();
+            const recentStatusUpdates = orderItems
+                .filter(item => item.orderStatus && item.orderStatus !== 'PENDING')
+                .slice(0, 2)
+                .map(item => ({
+                    action: 'Status Update',
+                    user: 'Admin',
+                    details: `Order #${item.orderId} status changed to ${item.orderStatus}`,
+                    date: item.updatedAt || item.createdAt || new Date().toISOString(),
+                    type: 'status_update',
+                    icon: 'bi-arrow-repeat'
+                }));
+
+            // Combine all activities
+            activities.push(...recentUsers, ...recentBooks, ...recentOrders, ...recentStatusUpdates);
+            
+            // Sort by date (newest first) and limit results
+            activities.sort((a, b) => {
+                const dateA = new Date(a.date || 0);
+                const dateB = new Date(b.date || 0);
+                return dateB - dateA;
+            });
+
+            return activities.slice(0, limit);
+        } catch (error) {
+            console.error('Error fetching recent activities:', error);
+            return [];
+        }
     }
 }
