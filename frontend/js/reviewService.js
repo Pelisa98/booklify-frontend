@@ -15,7 +15,7 @@ class ReviewService {
                     reviewRating: reviewData.rating,
                     reviewComment: reviewData.comment,
                     reviewDate: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
-                    user: { userId: reviewData.userId },
+                    user: { id: reviewData.userId },
                     book: { bookID: reviewData.bookId }
                 })
             });
