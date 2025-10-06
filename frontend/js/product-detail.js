@@ -23,26 +23,83 @@ class ProductDetailController {
     }
 
     /**
-     * Load book details from URL parameter
+     * Load book details from URL parameter and fetch all conditions
      */
     async loadBookDetails() {
         this.showLoading();
 
         const urlParams = new URLSearchParams(window.location.search);
         const bookId = urlParams.get('id');
+        const bookTitle = urlParams.get('title');
 
-        if (!bookId) {
-            throw new Error('No book ID specified in the URL.');
+        let mainBook;
+        let allSimilarBooks;
+
+        if (bookTitle) {
+            // If title is provided, fetch all books with that title
+            const response = await fetch(`http://localhost:8081/api/book/search/title?query=${encodeURIComponent(bookTitle)}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch books by title');
+            }
+            
+            allSimilarBooks = await response.json();
+            if (!allSimilarBooks || allSimilarBooks.length === 0) {
+                throw new Error('No books found with the specified title.');
+            }
+            
+            // Use the first book as the main book for display
+            mainBook = allSimilarBooks[0];
+        } else if (bookId) {
+            // Original behavior: fetch by ID
+            const response = await fetch(`http://localhost:8081/api/book/read/${bookId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch book details');
+            }
+
+            mainBook = await response.json();
+            
+            // Fetch all books with the same title to get different conditions
+            const allBooksResponse = await fetch('http://localhost:8081/api/book/getAll');
+            if (allBooksResponse.ok) {
+                const allBooks = await allBooksResponse.json();
+                allSimilarBooks = allBooks.filter(book => 
+                    book.title.toLowerCase() === mainBook.title.toLowerCase()
+                );
+            } else {
+                allSimilarBooks = [mainBook];
+            }
+        } else {
+            throw new Error('No book ID or title specified in the URL.');
         }
 
-        const response = await fetch(`http://localhost:8081/api/book/read/${bookId}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch book details');
-        }
-
-        this.currentBook = await response.json();
-        this.renderBookDetails(this.currentBook);
+        this.currentBook = mainBook;
+        
+        // Group books by condition
+        this.booksByCondition = this.groupBooksByCondition(allSimilarBooks, mainBook.title);
+        
+        this.renderBookDetailsWithConditions(this.currentBook, this.booksByCondition);
         await this.loadReviews(this.currentBook.bookID);
+    }
+
+    /**
+     * Group books by condition for the same title
+     */
+    groupBooksByCondition(allBooks, targetTitle) {
+        const matchingBooks = allBooks.filter(book => 
+            book.title.toLowerCase() === targetTitle.toLowerCase() && 
+            book.isAvailable !== false // Only include available books
+        );
+
+        const grouped = {};
+        matchingBooks.forEach(book => {
+            const condition = book.condition || 'Unknown';
+            if (!grouped[condition]) {
+                grouped[condition] = [];
+            }
+            grouped[condition].push(book);
+        });
+
+        return grouped;
     }
 
     //Show loading state
@@ -60,8 +117,194 @@ class ProductDetailController {
         }
     }
 
-    //Render book details HTML
+    //Render book details HTML with conditions
 
+    renderBookDetailsWithConditions(book, booksByCondition) {
+        const imageUrl = `http://localhost:8081/api/book/image/${book.bookID}`;
+        const uploadedDate = new Date(book.uploadedDate).toLocaleDateString();
+
+        // Generate condition options HTML
+        const conditionsHtml = this.generateConditionsHtml(booksByCondition);
+
+        const bookDetailsHtml = `
+            <div class="row g-5">
+                <div class="col-lg-5">
+                    <div class="product-image-container">
+                        <img id="bookImage" src="${imageUrl}" alt="${book.title}" class="img-fluid rounded shadow-sm">
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <h1 class="fw-bold" id="bookTitle">${book.title}</h1>
+                    <p class="text-muted fs-5 mb-2" id="bookAuthor">by ${book.author}</p>
+                    <div class="mb-2">
+                        <span class="text-muted small" id="bookPublisher">${book.publisher || 'Unknown Publisher'}</span>
+                        ${book.isbn ? `<br><span class="text-muted small" id="bookIsbn">ISBN: ${book.isbn}</span>` : ''}
+                        <br><span class="text-muted small">${book.publicationYear || 'Unknown Year'}</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="fw-bold">Description</h5>
+                        <p id="bookDescription">${book.description || 'No description provided.'}</p>
+                    </div>
+
+                    <!-- Condition Selection Section -->
+                    <div class="condition-selection-container mb-4">
+                        ${conditionsHtml}
+                    </div>
+
+                    <div class="book-meta border-top pt-3 mb-4">
+                        <p class="mb-1"><strong class="me-2">Date Listed:</strong><span id="bookUploadedDate">${uploadedDate}</span></p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.productDetailContainer.innerHTML = bookDetailsHtml;
+        this.setupConditionHandlers(booksByCondition);
+    }
+
+    /**
+     * Setup event handlers for condition-based selection
+     */
+    setupConditionHandlers(booksByCondition) {
+        // Store reference to grouped books for use in handleAddToCart
+        this.groupedBooks = booksByCondition;
+
+        // Add event listeners for "Add Cheapest" buttons
+        document.querySelectorAll('.add-cheapest-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const condition = e.target.dataset.condition;
+                const price = parseFloat(e.target.dataset.price);
+                
+                // Find the cheapest book in this condition
+                const booksInCondition = booksByCondition[condition];
+                const selectedBook = booksInCondition.find(book => book.price === price) || booksInCondition[0];
+                
+                if (selectedBook) {
+                    await this.handleAddToCart(selectedBook.bookID, condition);
+                }
+            });
+        });
+
+        // Add event listeners for "View Options" buttons
+        document.querySelectorAll('.view-sellers-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const condition = e.target.dataset.condition;
+                this.showSellerOptionsModal(condition, booksByCondition[condition]);
+            });
+        });
+
+        // Add hover effects for condition options
+        document.querySelectorAll('.condition-option').forEach(option => {
+            option.addEventListener('mouseenter', (e) => {
+                e.target.style.backgroundColor = '#f8f9fa';
+                e.target.style.cursor = 'pointer';
+            });
+            
+            option.addEventListener('mouseleave', (e) => {
+                e.target.style.backgroundColor = '';
+            });
+        });
+    }
+
+    /**
+     * Generate HTML for condition options
+     */
+    generateConditionsHtml(booksByCondition) {
+        if (!booksByCondition || Object.keys(booksByCondition).length === 0) {
+            return '<p class="text-muted">No available copies found.</p>';
+        }
+
+        // Define condition order and details
+        const conditionOrder = ['EXCELLENT', 'GOOD', 'AVERAGE', 'ACCEPTABLE', 'FAIR'];
+        const conditionDetails = {
+            'EXCELLENT': {
+                description: 'This textbook has no torn or missing pages, has no writing or highlighting. It\'s like new.',
+                color: 'success'
+            },
+            'GOOD': {
+                description: 'This textbook has minor wear but no missing pages. May have minimal writing or highlighting.',
+                color: 'info'
+            },
+            'AVERAGE': {
+                description: 'This textbook has no large tears or any missing pages. It may contain very little writing or highlighting. Used once or twice.',
+                color: 'warning'
+            },
+            'ACCEPTABLE': {
+                description: 'This textbook has no missing pages and may have considerable writing or highlighting but the text must not be obscured. This textbook has been around.',
+                color: 'secondary'
+            },
+            'FAIR': {
+                description: 'This textbook shows significant wear and may have torn pages or other damage.',
+                color: 'danger'
+            }
+        };
+
+        let html = '<h5 class="fw-bold mb-3">Available Conditions</h5>';
+
+        // Sort conditions by the defined order
+        const sortedConditions = Object.keys(booksByCondition).sort((a, b) => {
+            const indexA = conditionOrder.indexOf(a.toUpperCase());
+            const indexB = conditionOrder.indexOf(b.toUpperCase());
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+
+        sortedConditions.forEach(condition => {
+            const books = booksByCondition[condition];
+            const quantity = books.length;
+            const prices = books.map(book => book.price).sort((a, b) => a - b);
+            const lowestPrice = prices[0];
+            const highestPrice = prices[prices.length - 1];
+            const conditionKey = condition.toUpperCase();
+            const details = conditionDetails[conditionKey] || conditionDetails['FAIR'];
+
+            // Determine price display
+            let priceDisplay;
+            if (prices.length === 1) {
+                priceDisplay = `R${lowestPrice.toFixed(2)}`;
+            } else if (lowestPrice === highestPrice) {
+                priceDisplay = `R${lowestPrice.toFixed(2)}`;
+            } else {
+                priceDisplay = `R${lowestPrice.toFixed(2)} - R${highestPrice.toFixed(2)}`;
+            }
+
+            html += `
+                <div class="condition-option border rounded mb-3 p-3" data-condition="${condition}">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h6 class="fw-bold text-${details.color} mb-1">${condition}</h6>
+                            <small class="text-muted">${quantity} Available from ${books.length > 1 ? books.length + ' sellers' : '1 seller'}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="h5 fw-bold text-purple">${priceDisplay}</span>
+                            ${prices.length > 1 ? '<br><small class="text-muted">Multiple prices available</small>' : ''}
+                        </div>
+                        <div class="col-md-5">
+                            <div class="d-flex gap-2 align-items-center">
+                                <button class="btn btn-purple btn-sm view-sellers-btn" 
+                                        data-condition="${condition}">
+                                    <i class="bi bi-eye me-1"></i> VIEW OPTIONS
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm add-cheapest-btn" 
+                                        data-condition="${condition}" 
+                                        data-price="${lowestPrice}"
+                                        title="Add cheapest option to cart">
+                                    <i class="bi bi-cart-plus me-1"></i> CHEAPEST
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="condition-description mt-2">
+                        <small class="text-muted">${details.description}</small>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    //Render book details HTML (original function kept for compatibility)
     renderBookDetails(book) {
         const imageUrl = `http://localhost:8081/api/book/image/${book.bookID}`;
         const uploadedDate = new Date(book.uploadedDate).toLocaleDateString();
@@ -117,57 +360,67 @@ class ProductDetailController {
     }
 
     //Handle add to cart functionality
-    async handleAddToCart(book) {
-        console.log('Adding book to cart:', book);
+    async handleAddToCart(bookId, condition = null) {
         const userId = localStorage.getItem('booklifyUserId');
-        console.log('User ID:', userId);
-
+        
         if (!userId) {
             alert('You must be logged in to add items to your cart.');
             window.location.href = 'login.html';
             return;
         }
 
+        // Find the specific book to add
+        let bookToAdd;
+        if (condition && this.groupedBooks) {
+            // For condition-based selection, find the first available book of that condition
+            const conditionBooks = this.groupedBooks[condition];
+            bookToAdd = conditionBooks && conditionBooks.length > 0 ? conditionBooks[0] : null;
+        } else {
+            // For regular selection, use the provided bookId
+            bookToAdd = this.currentBook || { bookID: bookId };
+        }
+
+        if (!bookToAdd) {
+            alert('Selected book is not available.');
+            return;
+        }
+
+        console.log('Adding book to cart:', bookToAdd);
+
         try {
-            console.log('Fetching existing cart for user:', userId);
             let cart = await CartService.getCartByUserId(userId);
-            console.log('Existing cart:', cart);
 
             if (!cart) {
-                console.log('No existing cart, creating new one');
                 cart = await CartService.createCart(userId);
-                console.log('Created cart:', cart);
             }
 
-            const existingItem = cart.cartItems?.find(item => item.book.bookID === book.bookID);
-            console.log('Existing item:', existingItem);
+            const existingItem = cart.cartItems?.find(item => item.book.bookID === bookToAdd.bookID);
 
             if (existingItem) {
-                console.log('Updating existing item quantity');
-                await CartService.updateCartItemsQuantity(cart.cartId, book.bookID, existingItem.quantity + 1);
+                await CartService.updateCartItemsQuantity(cart.cartId, bookToAdd.bookID, existingItem.quantity + 1);
             } else {
-                console.log('Adding new item to cart');
                 if (!cart.cartItems) {
                     cart.cartItems = [];
                 }
-                cart.cartItems.push({ book: { bookID: book.bookID }, quantity: 1 });
-                console.log('Updated cart before sending:', cart);
+                cart.cartItems.push({ book: { bookID: bookToAdd.bookID }, quantity: 1 });
                 await CartService.updateCart(cart);
             }
 
-           // Show Bootstrap toast instead of alert
-   const toastEl = document.getElementById('cartToast');
-const toast = new bootstrap.Toast(toastEl, { delay: 2000 });
-toast.show();
-
+            // Show Bootstrap toast
+            const toastEl = document.getElementById('cartToast');
+            if (toastEl) {
+                const toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+                toast.show();
+            }
 
             // Refresh cart badge in navbar
             if (window.NavbarComponent) {
                 window.NavbarComponent.refreshCartBadge();
             }
-setTimeout(() => {
-    window.location.href = 'cart.html';
-}, 1500); // 1.5 seconds delay
+
+            setTimeout(() => {
+                window.location.href = 'cart.html';
+            }, 1500);
 
         } catch (error) {
             console.error('Failed to add to cart:', error);
@@ -175,21 +428,101 @@ setTimeout(() => {
         }
     }
 
+    //Show seller options modal
+    showSellerOptionsModal(condition, books) {
+        const modalElement = document.getElementById('sellerOptionsModal');
+        const modalTitle = document.getElementById('sellerOptionsModalLabel');
+        const modalContent = document.getElementById('sellerOptionsContent');
+
+        if (!modalElement || !modalTitle || !modalContent) {
+            console.error('Modal elements not found');
+            return;
+        }
+
+        // Update modal title
+        modalTitle.textContent = `${condition} Condition - Available Sellers`;
+
+        // Sort books by price (lowest first)
+        const sortedBooks = books.sort((a, b) => a.price - b.price);
+
+        // Generate seller options HTML
+        let sellersHtml = `
+            <div class="mb-3">
+                <p class="text-muted mb-3">Choose from ${books.length} seller${books.length > 1 ? 's' : ''} offering this book in ${condition} condition:</p>
+            </div>
+        `;
+
+        sortedBooks.forEach((book, index) => {
+            const isLowestPrice = index === 0;
+            const uploadDate = new Date(book.uploadedDate).toLocaleDateString();
+
+            sellersHtml += `
+                <div class="seller-option border rounded mb-3 p-3 ${isLowestPrice ? 'border-success' : ''}">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            ${isLowestPrice ? '<span class="badge bg-success mb-2">Best Price</span><br>' : ''}
+                            <small class="text-muted">Seller #${book.userID || 'Unknown'}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="fw-bold text-purple mb-1">R${book.price.toFixed(2)}</h5>
+                            <small class="text-muted">Listed: ${uploadDate}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1 small">${book.description ? book.description.substring(0, 80) + (book.description.length > 80 ? '...' : '') : 'No additional description'}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn ${isLowestPrice ? 'btn-success' : 'btn-purple'} btn-sm w-100 select-seller-btn" 
+                                    data-book-id="${book.bookID}" 
+                                    data-condition="${condition}"
+                                    data-price="${book.price}">
+                                <i class="bi bi-cart-plus me-1"></i> 
+                                ${isLowestPrice ? 'ADD CHEAPEST' : 'ADD TO CART'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        modalContent.innerHTML = sellersHtml;
+
+        // Add event listeners to seller selection buttons
+        modalContent.querySelectorAll('.select-seller-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const bookId = e.target.dataset.bookId;
+                const condition = e.target.dataset.condition;
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Add selected book to cart
+                await this.handleAddToCart(bookId, condition);
+            });
+        });
+
+        // Show modal
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
     //Load and display reviews for the book
     async loadReviews(bookId, tempReviews = []) {
         const reviewsSummary = document.querySelector('.reviews-summary');
         if (!reviewsSummary) return;
 
-        const writeBtn = document.getElementById('writeReviewBtn');
         let reviewsCenter = reviewsSummary.querySelector('#reviewsList');
 
         if (!reviewsCenter) {
             reviewsCenter = document.createElement('div');
             reviewsCenter.id = 'reviewsList';
             reviewsCenter.className = 'reviews-list d-flex flex-column align-items-center w-100';
-
-            if (writeBtn && writeBtn.parentNode) {
-                writeBtn.parentNode.insertAdjacentElement('afterend', reviewsCenter);
+            
+            const summaryContent = reviewsSummary.querySelector('.reviews-summary-content');
+            if (summaryContent) {
+                summaryContent.appendChild(reviewsCenter);
             } else {
                 reviewsSummary.appendChild(reviewsCenter);
             }
@@ -202,7 +535,7 @@ setTimeout(() => {
             const allReviews = [...tempReviews, ...reviews];
 
             if (!allReviews.length) {
-                this.renderEmptyReviews(reviewsCenter, writeBtn, bookId);
+                this.renderEmptyReviews(reviewsCenter, bookId);
                 return;
             }
 
@@ -212,10 +545,6 @@ setTimeout(() => {
         } catch (error) {
             console.error('Failed to load reviews:', error);
             reviewsCenter.innerHTML = `<p class="text-danger text-center w-100">Unable to load reviews.</p>`;
-        } finally {
-            if (writeBtn) {
-                writeBtn.onclick = () => this.showReviewModal(bookId);
-            }
         }
     }
 
@@ -236,11 +565,8 @@ setTimeout(() => {
     }
 
     //Render empty reviews state
-    renderEmptyReviews(container, writeBtn, bookId) {
-        container.innerHTML = `<p class="text-muted text-center w-100">No reviews yet. Why not leave one!</p>`;
-        if (writeBtn) {
-            writeBtn.onclick = () => this.showReviewModal(bookId);
-        }
+    renderEmptyReviews(container, bookId) {
+        container.innerHTML = `<p class="text-muted text-center w-100">No reviews yet.</p>`;
     }
 
     //Render reviews summary with average rating
@@ -264,10 +590,22 @@ setTimeout(() => {
         const list = document.createElement('div');
         list.className = 'reviews-list-items d-flex flex-column align-items-center w-100';
 
-        reviews.forEach(review => {
+        // Show only top 4 reviews
+        const topReviews = reviews.slice(0, 4);
+        
+        topReviews.forEach(review => {
             const reviewElement = this.createReviewElement(review, bookId);
             list.appendChild(reviewElement);
         });
+
+        // Add "View All Reviews" button if there are more than 4 reviews
+        if (reviews.length > 4) {
+            const viewAllBtn = document.createElement('button');
+            viewAllBtn.className = 'btn btn-outline-primary mt-3';
+            viewAllBtn.textContent = `View All ${reviews.length} Reviews`;
+            viewAllBtn.onclick = () => this.showAllReviewsModal(reviews, bookId);
+            list.appendChild(viewAllBtn);
+        }
 
         container.appendChild(list);
     }
@@ -470,8 +808,10 @@ setTimeout(() => {
     async handleReviewSubmission(form, bookId, review) {
         const userId = localStorage.getItem('booklifyUserId');
         if (!userId) {
-            alert('Please log in to submit a review.');
-            window.location.href = 'login.html';
+            this.showNotification('Please log in to submit a review.', 'error');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
             return;
         }
 
@@ -490,10 +830,11 @@ setTimeout(() => {
         try {
             await this.submitReview(reviewData, review);
             this.closeReviewModal();
+            this.showNotification('Review submitted successfully!', 'success');
             await this.loadReviews(this.currentBook.bookID);
         } catch (error) {
             console.error('Failed to submit review:', error);
-            alert('Failed to submit review: ' + error.message);
+            this.showNotification('Failed to submit review: ' + error.message, 'error');
         }
     }
 
@@ -509,7 +850,7 @@ setTimeout(() => {
     //Validate review form data
     validateReviewForm(formData) {
         if (!formData.comment || !formData.rating) {
-            alert('Please fill in all fields.');
+            this.showNotification('Please fill in all required fields.', 'error');
             return false;
         }
         return true;
@@ -542,6 +883,48 @@ setTimeout(() => {
         return response;
     }
 
+    //Show all reviews in a modal
+    showAllReviewsModal(reviews, bookId) {
+        let modal = document.getElementById('allReviewsModal');
+
+        if (!modal) {
+            modal = this.createAllReviewsModal();
+            document.body.appendChild(modal);
+        }
+
+        const modalBody = modal.querySelector('.modal-body');
+        modalBody.innerHTML = '';
+
+        reviews.forEach(review => {
+            const reviewElement = this.createReviewElement(review, bookId);
+            modalBody.appendChild(reviewElement);
+        });
+
+        new bootstrap.Modal(modal).show();
+    }
+
+    //Create the all reviews modal HTML structure
+    createAllReviewsModal() {
+        const modal = document.createElement('div');
+        modal.classList.add('modal', 'fade');
+        modal.id = 'allReviewsModal';
+        modal.tabIndex = -1;
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">All Reviews</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <!-- Reviews will be populated here -->
+                    </div>
+                </div>
+            </div>
+        `;
+        return modal;
+    }
+
     //Close review modal
     closeReviewModal() {
         const modal = document.getElementById('reviewModal');
@@ -553,18 +936,52 @@ setTimeout(() => {
         }
     }
 
+    //Show notification toast
+    showNotification(message, type = 'info') {
+        // Remove any existing notifications
+        const existingNotification = document.getElementById('notificationToast');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Create notification toast
+        const toast = document.createElement('div');
+        toast.id = 'notificationToast';
+        toast.className = 'toast position-fixed';
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 1055; min-width: 300px;';
+        
+        const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-primary';
+        
+        toast.innerHTML = `
+            <div class="toast-header ${bgClass} text-white">
+                <strong class="me-auto">
+                    ${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'} 
+                    ${type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info'}
+                </strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+        
+        // Show the toast
+        const bsToast = new bootstrap.Toast(toast, {
+            delay: type === 'error' ? 5000 : 3000
+        });
+        bsToast.show();
+        
+        // Clean up after toast is hidden
+        toast.addEventListener('hidden.bs.toast', () => {
+            toast.remove();
+        });
+    }
+
     //Setup global event listeners
     setupEventListeners() {
-        // Global write review button handler (fallback)
-        document.addEventListener('click', (e) => {
-            if (e.target && (e.target.id === 'writeReviewBtn' || e.target.classList.contains('btn-write-review'))) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const bookId = urlParams.get('id');
-                if (bookId) {
-                    this.showReviewModal(bookId);
-                }
-            }
-        });
+        // No global write review button handler needed anymore
     }
 }
 
