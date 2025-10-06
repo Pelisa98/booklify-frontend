@@ -20,15 +20,7 @@
     <div class="reviews-summary mt-5">
         <h3 class="text-center mb-4">Customer Reviews</h3>
         <div class="reviews-summary-content">
-            <div class="reviews-left">
-                <div class="star-rating text-success mb-2">
-                    ★★★★★
-                </div>
-                <p class="mb-0">No reviews yet. Why not leave one!</p>
-            </div>
-            <div class="reviews-right">
-                <button class="btn btn-dark btn-lg w-100" id="writeReviewBtn" >Write a review</button>
-            </div>
+            <!-- Reviews will be populated here by JavaScript -->
         </div>
     </div>
 
@@ -103,7 +95,23 @@
 <!-- Add the new product detail script -->
 <script type="module" src="../js/product-detail.js"></script>
 
-<!-- Toast Container -->
+<!-- Seller Options Modal -->
+<div class="modal fade" id="sellerOptionsModal" tabindex="-1" aria-labelledby="sellerOptionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sellerOptionsModalLabel">Available Sellers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sellerOptionsContent">
+                    <!-- Seller options will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Container -->
 <div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1055;">
     <div id="cartToast" class="toast text-center border-0" role="alert" aria-live="assertive" aria-atomic="true" style="background-color: #D8B4FE; color: #000;">
