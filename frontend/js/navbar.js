@@ -42,6 +42,11 @@ class NavbarComponent {
      * Generate admin navbar
      */
     generateAdminNavbar() {
+        // Get admin data from localStorage
+        const adminData = JSON.parse(localStorage.getItem('booklifyUserData') || '{}');
+        const adminName = adminData.fullName || 'Admin';
+        const adminFirstName = adminName.split(' ')[0] || 'Admin';
+        
         return `
             <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
                 <div class="container d-flex align-items-center justify-content-between">
@@ -60,19 +65,28 @@ class NavbarComponent {
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link ${this.currentPage === 'admin-profile' ? 'active' : ''}" href="admin-profile.html">
-                                    <i class="bi bi-person-circle me-1"></i>Profile
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link ${this.currentPage === 'reviews' ? 'active' : ''}" href="reviews.html">
                                     <i class="bi bi-star-fill me-1"></i>Manage Reviews
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" id="logoutBtn">
-                                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            <!-- Admin Dropdown -->
+                            <li class="nav-item dropdown ms-2">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle me-1"></i>${adminFirstName}
                                 </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                                    <li>
+                                        <a class="dropdown-item ${this.currentPage === 'admin-profile' ? 'active' : ''}" href="admin-profile.html">
+                                            <i class="bi bi-person me-2"></i>Profile
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" id="logoutBtn">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
                     </div>
@@ -88,6 +102,11 @@ class NavbarComponent {
         const isHomePage = this.currentPage === 'index';
         const homeLink = isHomePage ? 'index.html' : '../index.html';
         const assetsPath = isHomePage ? 'assets' : '../assets';
+        
+        // Get user data from localStorage
+        const userData = JSON.parse(localStorage.getItem('booklifyUserData') || '{}');
+        const userName = userData.fullName || 'User';
+        const userFirstName = userName.split(' ')[0] || 'User';
 
         return `
             <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
@@ -102,11 +121,6 @@ class NavbarComponent {
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
                             <li class="nav-item">
-                                <a class="nav-link ${this.currentPage === 'index' ? 'active' : ''}" href="${homeLink}">
-                                    <i class="bi bi-house me-1"></i>Home
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link ${this.currentPage === 'products' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}products.html">
                                     <i class="bi bi-book me-1"></i>Shop Textbooks
                                 </a>
@@ -114,11 +128,6 @@ class NavbarComponent {
                             <li class="nav-item">
                                 <a class="nav-link ${this.currentPage === 'sell' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}sell.html">
                                     <i class="bi bi-plus-circle me-1"></i>Sell Textbooks
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link ${this.currentPage === 'profile' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}profile.html">
-                                    <i class="bi bi-person-circle me-1"></i>Profile
                                 </a>
                             </li>
                             <li class="nav-item d-flex align-items-center ms-2">
@@ -129,13 +138,35 @@ class NavbarComponent {
                                     </span>
                                 </a>
                             </li>
-                            ${!isHomePage ? `
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" id="logoutBtn">
-                                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            <!-- User Dropdown -->
+                            <li class="nav-item dropdown ms-2">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle me-1"></i>${userFirstName}
                                 </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li>
+                                        <a class="dropdown-item ${this.currentPage === 'profile' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}profile.html">
+                                            <i class="bi bi-person me-2"></i>Profile
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item ${this.currentPage === 'orders' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}orders.html">
+                                            <i class="bi bi-bag-check me-2"></i>My Orders
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item ${this.currentPage === 'my-reviews' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}my-reviews.html">
+                                            <i class="bi bi-star me-2"></i>My Reviews
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" id="logoutBtn">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
-                            ` : ''}
                         </ul>
                     </div>
                 </div>
@@ -163,11 +194,6 @@ class NavbarComponent {
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
-                            <li class="nav-item">
-                                <a class="nav-link ${this.currentPage === 'index' ? 'active' : ''}" href="${homeLink}">
-                                    <i class="bi bi-house me-1"></i>Home
-                                </a>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link ${this.currentPage === 'products' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}products.html">
                                     <i class="bi bi-book me-1"></i>Shop Textbooks
