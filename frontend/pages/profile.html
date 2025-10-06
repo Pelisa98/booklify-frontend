@@ -101,20 +101,6 @@
                     </form>
                 </div>
 
-                <!-- Purchase History Section -->
-                <div class="bg-white rounded-lg shadow-sm p-4 mb-4" id="purchaseHistory">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-bag-check fs-2 text-purple me-2"></i>
-                            <h4 class="fw-bold mb-0">Purchase History</h4>
-                        </div>
-                        <span class="badge bg-purple rounded-pill" id="purchaseCount">0</span>
-                    </div>
-                    <div id="purchasesList" class="list-group mb-3">
-                        <!-- Purchase history will be populated by JavaScript -->
-                    </div>
-                </div>
-
                 <!-- Orders Section -->
                 <div class="bg-white rounded-lg shadow-sm p-4 mb-4" id="ordersSection">
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -228,6 +214,7 @@
     </div>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../js/userService.js"></script>
 <script src="../js/profileListings.js"></script>
@@ -271,7 +258,7 @@
 
             } catch (error) {
                 console.error('Error loading profile:', error);
-                alert('Failed to load profile. Please try again.');
+                showNotification('Failed to load profile. Please try again.', 'error');
             }
         }
 
@@ -302,12 +289,12 @@
                 const updatedProfile = await UserService.updateProfile(userId, updatedData);
                 // Update localStorage with the latest data
                 localStorage.setItem('booklifyUserData', JSON.stringify(updatedProfile));
-                alert('Profile updated successfully!');
+                showNotification('Profile updated successfully!', 'success');
                 await loadUserProfile(); // Reload profile data
                 document.getElementById('profileView').classList.remove('d-none');
                 document.getElementById('editProfileForm').classList.add('d-none');
             } catch (error) {
-                alert(error.message || 'Failed to update profile. Please try again.');
+                showNotification(error.message || 'Failed to update profile. Please try again.', 'error');
             }
         });
 
@@ -325,13 +312,59 @@
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
                 await UserService.deleteUser(userId);
+                showNotification('Account deleted successfully. Redirecting...', 'success');
                 UserService.logout();
-                window.location.href = 'login.html';
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             } catch (error) {
-                alert(error.message || 'Failed to delete account. Please try again.');
+                showNotification(error.message || 'Failed to delete account. Please try again.', 'error');
             }
             deleteModal.hide();
         });
+
+        // Show notification toast function
+        function showNotification(message, type = 'info') {
+            // Remove any existing notifications
+            const existingNotification = document.getElementById('notificationToast');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // Create notification toast
+            const toast = document.createElement('div');
+            toast.id = 'notificationToast';
+            toast.className = 'toast position-fixed';
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 1055; min-width: 300px;';
+            
+            const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-primary';
+            
+            toast.innerHTML = `
+                <div class="toast-header ${bgClass} text-white">
+                    <strong class="me-auto">
+                        ${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'} 
+                        ${type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info'}
+                    </strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+            
+            // Show the toast
+            const bsToast = new bootstrap.Toast(toast, {
+                delay: type === 'error' ? 5000 : 3000
+            });
+            bsToast.show();
+            
+            // Clean up after toast is hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
 
         // Initial load
         loadUserProfile();
