@@ -12,6 +12,27 @@ const loadingSpinner = document.getElementById('loadingSpinner');
 let lastKnownStatuses = new Map();
 let pollingInterval = null;
 
+// Check for order status changes and auto-send invoices
+function checkForInvoiceTriggers(orderId, oldStatus, newStatus) {
+    if (oldStatus !== newStatus && window.EmailService && window.EmailService.shouldSendInvoice(newStatus)) {
+        console.log(`Order ${orderId} status changed from ${oldStatus} to ${newStatus}, checking for auto-invoice`);
+        
+        const userData = JSON.parse(localStorage.getItem('booklifyUserData') || '{}');
+        if (userData.email) {
+            window.EmailService.sendInvoiceOnStatusChange(orderId, newStatus, userData)
+                .then(sent => {
+                    if (sent) {
+                        console.log(`Auto-invoice sent for order ${orderId}`);
+                        showToast('success', `Invoice sent to ${userData.email} for order #${orderId}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to send auto-invoice:', error);
+                });
+        }
+    }
+}
+
 async function fetchOrdersByUser(userId) {
     const response = await fetch(`${ORDERS_API_BASE_URL}/getByUserId/${userId}`);
     if (!response.ok) return [];
@@ -42,10 +63,15 @@ function renderOrders(orders) {
             <div class="card-body">
                 <div class="mb-2"><strong>Status:</strong> <span class="order-status" data-order-id="${order.orderId}">Loading...</span></div>
                 <div class="mb-2"><strong>Total:</strong> R${order.totalAmount || '0.00'}</div>
-                <div class="mb-2"><strong>Order Items:</strong></div>
-                <ul class="list-group order-items-list mb-2" id="order-items-${order.orderId}">
+                <div class="mb-3"><strong>Order Items:</strong></div>
+                <ul class="list-group order-items-list mb-3" id="order-items-${order.orderId}">
                     <li class="list-group-item">Loading items...</li>
                 </ul>
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-purple" onclick="generateInvoice(${order.orderId})" title="Generate Invoice">
+                        <i class="bi bi-receipt"></i> View Invoice
+                    </button>
+                </div>
             </div>
         `;
         ordersContainer.appendChild(orderCard);
@@ -108,6 +134,9 @@ function checkForStatusUpdates(currentOrders) {
                 newStatus: currentStatus,
                 order
             });
+            
+            // Check if we should send invoice for this status change
+            checkForInvoiceTriggers(orderId, lastStatus, currentStatus);
         }
         
         // Update the stored status
@@ -444,6 +473,101 @@ function showErrorModal(message) {
     
     // Clean up after modal is hidden
     document.getElementById('errorModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Invoice Generation Functions
+async function generateInvoice(orderId) {
+    try {
+        // Show loading state
+        showToast('info', 'Generating invoice...');
+        
+        // Get user information with fallback
+        const userId = localStorage.getItem('booklifyUserId');
+        let userData = JSON.parse(localStorage.getItem('booklifyUserData') || '{}');
+        
+        // Provide fallback user data if not available
+        if (!userData || Object.keys(userData).length === 0) {
+            userData = {
+                id: userId,
+                userId: userId,
+                fullName: 'Customer',
+                name: 'Customer',
+                email: 'customer@example.com'
+            };
+            console.warn('User data not found in localStorage, using fallback data');
+        }
+        
+        console.log('Using user data for invoice:', userData);
+        
+        // Generate and display invoice
+        await InvoiceService.generateAndDisplayInvoice(orderId, userData);
+        
+        showToast('success', 'Invoice generated successfully!');
+        
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        showToast('error', 'Failed to generate invoice. Please try again.');
+    }
+}
+
+// Function to manually update address for an order (for debugging/fixing purposes)
+async function updateOrderAddress(orderId, newAddress) {
+    const addressData = {
+        orderId: orderId,
+        deliveryAddress: newAddress,
+        timestamp: new Date().toISOString(),
+        manualUpdate: true
+    };
+    
+    localStorage.setItem(`orderAddress_${orderId}`, JSON.stringify(addressData));
+    console.log('✅ Manually updated address for order', orderId, ':', newAddress);
+    alert(`Address updated for order ${orderId}. Regenerate the invoice to see the change.`);
+}
+
+// Make function available globally for console access
+window.updateOrderAddress = updateOrderAddress;
+
+// Function to show toast notifications
+function showToast(type, message) {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1055';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const toastTypes = {
+        success: { class: 'bg-success', icon: 'bi-check-circle-fill' },
+        error: { class: 'bg-danger', icon: 'bi-x-circle-fill' },
+        warning: { class: 'bg-warning', icon: 'bi-exclamation-triangle-fill' },
+        info: { class: 'bg-info', icon: 'bi-info-circle-fill' }
+    };
+    
+    const toastType = toastTypes[type] || toastTypes.success;
+    
+    const toastHtml = `
+        <div id="${toastId}" class="toast text-white ${toastType.class}" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center">
+                <i class="bi ${toastType.icon} me-2"></i>
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+    toast.show();
+    
+    // Remove toast after it's hidden
+    toastElement.addEventListener('hidden.bs.toast', function() {
         this.remove();
     });
 }
