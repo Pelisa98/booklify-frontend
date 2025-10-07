@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booklify Analytics Integration Example</title>
+    <!-- Existing CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Your custom analytics CSS -->
+    <link rel="stylesheet" href="../css/analytics.css">
+</head>
+<body>
+
+<!-- Example integration in admin-dashboard.html -->
+
+<!-- Add this to your existing admin dashboard after the current overview section -->
+<div id="analyticsToggle" class="mb-3">
+    <button class="btn btn-purple" onclick="toggleAnalytics()">
+        <i class="bi bi-graph-up me-2"></i>View Advanced Analytics
+    </button>
+</div>
+
+<!-- This section will be dynamically created by adminAnalytics.js -->
+<div id="analyticsSection" style="display: none;">
+    <!-- Charts will be inserted here automatically -->
+</div>
+
+<!-- Include analytics JavaScript files -->
+<script src="../js/chartService.js"></script>
+<script src="../js/adminAnalytics.js"></script>
+
+<!-- For user profiles, add this to profile.html -->
+<script>
+// Add this to your existing profile.js
+document.addEventListener('DOMContentLoaded', () => {
+    const userId = localStorage.getItem('booklifyUserId');
+    if (userId) {
+        // Initialize user analytics after a delay
+        setTimeout(() => {
+            if (typeof initializeUserAnalytics === 'function') {
+                initializeUserAnalytics(userId);
+            }
+        }, 2000);
+    }
+});
+</script>
+
+<script>
+/**
+ * Toggle analytics section visibility
+ */
+function toggleAnalytics() {
+    const analyticsSection = document.getElementById('analyticsSection');
+    const toggleBtn = document.querySelector('#analyticsToggle button');
+    
+    if (analyticsSection.style.display === 'none') {
+        analyticsSection.style.display = 'block';
+        toggleBtn.innerHTML = '<i class="bi bi-graph-down me-2"></i>Hide Analytics';
+        
+        // Initialize analytics if not already done
+        if (typeof adminAnalytics === 'undefined' && typeof AdminAnalytics !== 'undefined') {
+            adminAnalytics = new AdminAnalytics();
+        }
+    } else {
+        analyticsSection.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="bi bi-graph-up me-2"></i>View Advanced Analytics';
+    }
+}
+
+/**
+ * Export analytics data as PDF or Excel
+ */
+function exportAnalytics(format) {
+    if (typeof adminAnalytics !== 'undefined') {
+        const data = adminAnalytics.exportChartData();
+        
+        if (format === 'pdf') {
+            // You can integrate with jsPDF library
+            console.log('Exporting to PDF...', data);
+        } else if (format === 'excel') {
+            // You can integrate with SheetJS library
+            console.log('Exporting to Excel...', data);
+        }
+    }
+}
+
+/**
+ * Print analytics dashboard
+ */
+function printAnalytics() {
+    const analyticsSection = document.getElementById('analyticsSection');
+    if (analyticsSection) {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Booklify Analytics Report</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link rel="stylesheet" href="../css/analytics.css">
+                <style>
+                    @media print {
+                        .no-print { display: none !important; }
+                        .card { page-break-inside: avoid; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container-fluid">
+                    <h1>Booklify Analytics Report</h1>
+                    <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                    ${analyticsSection.innerHTML}
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    }
+}
+</script>
+
+</body>
+</html>
