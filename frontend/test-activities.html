@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recent Activities Test | Booklify</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Recent Activities Test</h2>
+        
+        <!-- Test Buttons -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary me-2" onclick="testLogActivity()">Log Single Activity</button>
+                <button class="btn btn-success me-2" onclick="createTestSequence()">Create Test Sequence</button>
+                <button class="btn btn-info me-2" onclick="testLoadActivities()">Refresh Activities</button>
+                <button class="btn btn-warning me-2" onclick="clearActivities()">Clear All</button>
+                <button class="btn btn-secondary" onclick="showDebugInfo()">Debug Info</button>
+            </div>
+        </div>
+
+        <!-- Recent Activities Display -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Activities</h5>
+                <button class="btn btn-sm btn-outline-purple" onclick="testLoadActivities()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Action</th>
+                                <th style="width: 25%;">User</th>
+                                <th style="width: 35%;">Details</th>
+                                <th style="width: 15%;">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activitiesTableBody">
+                            <tr><td colspan="4" class="text-center">Loading activities...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Output -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Debug Output</h5>
+            </div>
+            <div class="card-body">
+                <pre id="debugOutput" style="max-height: 300px; overflow-y: auto;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/adminService.js"></script>
+    <script>
+        let debugLog = [];
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            debugLog.push(logMessage);
+            console.log(logMessage);
+            updateDebugOutput();
+        }
+        
+        function updateDebugOutput() {
+            document.getElementById('debugOutput').textContent = debugLog.join('\n');
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            
+            try {
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffSecs = Math.floor(diffMs / 1000);
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                // Show precise relative time for testing
+                if (diffMs < 1000) {
+                    return 'Just now';
+                } else if (diffSecs < 60) {
+                    return `${diffSecs}s ago`;
+                } else if (diffMins < 60) {
+                    return `${diffMins}m ago`;
+                } else {
+                    return date.toLocaleString('en-ZA', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                }
+            } catch {
+                return dateStr;
+            }
+        }
+
+        function testLogActivity() {
+            log('Testing log activity...');
+            try {
+                if (typeof AdminService !== 'undefined' && AdminService.logActivity) {
+                    AdminService.logActivity(
+                        'Test Action', 
+                        'Test User', 
+                        'This is a test activity logged at ' + new Date().toLocaleTimeString(), 
+                        'system'
+                    );
+                    log('✅ Activity logged successfully');
+                } else {
+                    log('❌ AdminService.logActivity not available');
+                }
+            } catch (error) {
+                log('❌ Error logging activity: ' + error.message);
+            }
+        }
+        
+        function testGetStoredActivities() {
+            log('Testing get stored activities...');
+            try {
+                if (typeof AdminService !== 'undefined' && AdminService.getStoredActivities) {
+                    const activities = AdminService.getStoredActivities();
+                    log(`✅ Found ${activities.length} stored activities`);
+                    log('Stored activities: ' + JSON.stringify(activities, null, 2));
+                } else {
+                    log('❌ AdminService.getStoredActivities not available');
+                }
+            } catch (error) {
+                log('❌ Error getting stored activities: ' + error.message);
+            }
+        }
+        
+        async function testLoadActivities() {
+            log('Testing load activities...');
+            try {
+                const activitiesTableBody = document.getElementById('activitiesTableBody');
+                activitiesTableBody.innerHTML = '<tr><td colspan="4" class="text-center"><i class="bi bi-arrow-clockwise fa-spin me-2"></i>Loading activities...</td></tr>';
+                
+                if (typeof AdminService !== 'undefined' && AdminService.getRecentActivitiesEnhanced) {
+                    const activities = await AdminService.getRecentActivitiesEnhanced(8);
+                    log(`✅ Loaded ${activities.length} activities`);
+                    
+                    if (activities.length === 0) {
+                        activitiesTableBody.innerHTML = `
+                            <tr><td colspan="4" class="text-center text-muted">
+                                <i class="bi bi-info-circle me-2"></i>
+                                No recent activities found.
+                            </td></tr>`;
+                    } else {
+                        activitiesTableBody.innerHTML = activities.map(activity => `
+                            <tr>
+                                <td>
+                                    <i class="${activity.icon} me-2 text-primary"></i>
+                                    <span class="fw-medium">${activity.action}</span>
+                                </td>
+                                <td>
+                                    <span class="text-secondary">${activity.user || 'Unknown User'}</span>
+                                </td>
+                                <td>
+                                    <span class="text-dark">${activity.details || 'No details available'}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">${formatDate(activity.date)}</small>
+                                </td>
+                            </tr>
+                        `).join('');
+                        
+                        log('✅ Activities displayed in table');
+                    }
+                } else {
+                    log('❌ AdminService.getRecentActivitiesEnhanced not available');
+                }
+            } catch (error) {
+                log('❌ Error loading activities: ' + error.message);
+                document.getElementById('activitiesTableBody').innerHTML = `
+                    <tr><td colspan="4" class="text-center text-danger">
+                        Error: ${error.message}
+                    </td></tr>`;
+            }
+        }
+        
+        function clearActivities() {
+            log('Clearing stored activities...');
+            try {
+                localStorage.removeItem('recentActivities');
+                log('✅ Activities cleared');
+                setTimeout(() => testLoadActivities(), 500);
+            } catch (error) {
+                log('❌ Error clearing activities: ' + error.message);
+            }
+        }
+        
+        function createTestSequence() {
+            log('Creating test activity sequence...');
+            if (typeof AdminService !== 'undefined' && AdminService.createTestActivities) {
+                AdminService.createTestActivities();
+                log('✅ Test sequence started - check activities over next 4 seconds');
+            } else {
+                log('❌ AdminService.createTestActivities not available');
+            }
+        }
+        
+        function showDebugInfo() {
+            log('=== DEBUG INFO ===');
+            log('AdminService available: ' + (typeof AdminService !== 'undefined'));
+            if (typeof AdminService !== 'undefined') {
+                log('AdminService methods: ' + Object.getOwnPropertyNames(AdminService).join(', '));
+            }
+            log('localStorage available: ' + (typeof localStorage !== 'undefined'));
+            log('Current stored activities: ' + (localStorage.getItem('recentActivities') || 'none'));
+            log('==================');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Page loaded, starting tests...');
+            showDebugInfo();
+            testLoadActivities();
+        });
+    </script>
+</body>
+</html>
