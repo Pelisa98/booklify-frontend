@@ -33,11 +33,11 @@
                             <span><i class="bi bi-calendar-check"></i> Member Since</span>
                             <span class="text-muted" id="adminDateJoined">2023-01-01</span>
                         </div>
-                        <hr>
-                        <div class="mb-3">
-                            <h6 class="fw-bold mb-2"><i class="bi bi-chat-quote"></i> Bio</h6>
-                            <p class="text-muted mb-0" id="adminBio">Admin bio goes here.</p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span><i class="bi bi-clock"></i> Last Login</span>
+                            <span class="text-muted" id="adminLastLogin">Never</span>
                         </div>
+                        <hr>
                         <div class="d-grid gap-2 mb-3">
                             <a href="reviews.html" class="btn btn-outline-primary">
                                 <i class="bi bi-star-fill"></i> Manage Book Reviews
@@ -88,6 +88,37 @@
         </div>
     </div>
 </section>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-purple text-white">
+                <h5 class="modal-title" id="logoutModalLabel">
+                    <i class="bi bi-box-arrow-right me-2"></i>Confirm Logout
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill text-purple me-3" style="font-size: 2rem;"></i>
+                    <div>
+                        <p class="mb-1 fw-bold">Are you sure you want to logout?</p>
+                        <p class="mb-0 text-muted">You will be redirected to the login page and will need to sign in again.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-purple" id="confirmLogoutBtn">
+                    <i class="bi bi-box-arrow-right me-1"></i>Yes, Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../js/script.js"></script>
@@ -140,12 +171,38 @@
             document.getElementById('adminName').textContent = profile.fullName || profile.name || 'Admin User';
             document.getElementById('adminEmail').textContent = profile.email || '';
             document.getElementById('adminDateJoined').textContent = profile.dateJoined ? new Date(profile.dateJoined).toLocaleDateString() : 'N/A';
-            document.getElementById('adminBio').textContent = profile.bio || 'No bio provided';
+            
+            // Update last login - check multiple sources
+            const lastLoginTime = profile.lastLogin || profile.lastLoginTime || profile.last_login || 
+                                 localStorage.getItem('booklifyLastLogin');
+            if (lastLoginTime) {
+                const loginDate = new Date(lastLoginTime);
+                const now = new Date();
+                const timeDiff = now - loginDate;
+                
+                // Format last login time
+                if (timeDiff < 60000) { // Less than 1 minute
+                    document.getElementById('adminLastLogin').textContent = 'Just now';
+                } else if (timeDiff < 3600000) { // Less than 1 hour
+                    const minutes = Math.floor(timeDiff / 60000);
+                    document.getElementById('adminLastLogin').textContent = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+                } else if (timeDiff < 86400000) { // Less than 1 day
+                    const hours = Math.floor(timeDiff / 3600000);
+                    document.getElementById('adminLastLogin').textContent = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                } else {
+                    document.getElementById('adminLastLogin').textContent = loginDate.toLocaleDateString() + ' at ' + loginDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                }
+            } else {
+                document.getElementById('adminLastLogin').textContent = 'Never';
+            }
 
             // Update form fields
             document.getElementById('fullNameInput').value = profile.fullName || profile.name || '';
             document.getElementById('emailInput').value = profile.email || '';
             document.getElementById('dateJoinedInfo').textContent = profile.dateJoined ? new Date(profile.dateJoined).toLocaleDateString() : 'N/A';
+            
+            // Update the last login in the edit section as well
+            document.getElementById('lastLogin').textContent = document.getElementById('adminLastLogin').textContent;
         }
 
         // Handle profile updates
@@ -182,15 +239,28 @@
             }
         });
 
-        // Handle logout
-        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+        // Handle confirmed logout from modal
+        document.getElementById('confirmLogoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
-            localStorage.removeItem('booklifyToken');
-            localStorage.removeItem('booklifyUserRole');
-            localStorage.removeItem('booklifyLoggedIn');
-            localStorage.removeItem('booklifyAdminId');
-            window.location.href = 'login.html';
+            
+            // Log the logout activity
+            try {
+                const userEmail = localStorage.getItem('booklifyUserEmail') || 'Unknown Admin';
+                if (typeof AdminService.logActivity === 'function') {
+                    AdminService.logActivity('Admin Logout', userEmail, 'Administrator logged out of the system', 'admin_logout');
+                }
+            } catch (error) {
+                console.warn('Could not log logout activity:', error);
+            }
+            
+            // Clear all session data
+            localStorage.clear();
+            
+            // Redirect to login page
+            window.location.href = 'adminLogIn.html';
         });
+
+        // Note: The logout button click is now handled by navbar.js which will trigger the modal
     });
 </script>
 </body>
