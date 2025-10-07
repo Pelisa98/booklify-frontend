@@ -262,11 +262,103 @@ class NavbarComponent {
      * Handle logout
      */
     handleLogout() {
-        if (confirm('Are you sure you want to logout?')) {
-            // Clear all localStorage
-            localStorage.clear();
+        // Check if we're on an admin page and a logout modal exists
+        const logoutModal = document.getElementById('logoutModal');
+        if (logoutModal) {
+            // Use the existing modal
+            const modal = new bootstrap.Modal(logoutModal);
+            modal.show();
+        } else {
+            // Create and show a temporary modal if none exists
+            this.showLogoutModal();
+        }
+    }
 
-            // Redirect to home page
+    /**
+     * Show logout confirmation modal
+     */
+    showLogoutModal() {
+        // Create modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="tempLogoutModal" tabindex="-1" aria-labelledby="tempLogoutModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-purple text-white">
+                            <h5 class="modal-title" id="tempLogoutModalLabel">
+                                <i class="bi bi-box-arrow-right me-2"></i>Confirm Logout
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-question-circle-fill text-purple me-3" style="font-size: 2rem;"></i>
+                                <div>
+                                    <p class="mb-1 fw-bold">Are you sure you want to logout?</p>
+                                    <p class="mb-0 text-muted">You will be redirected to the home page and will need to sign in again.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </button>
+                            <button type="button" class="btn btn-purple" id="tempConfirmLogoutBtn">
+                                <i class="bi bi-box-arrow-right me-1"></i>Yes, Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Get modal element and show it
+        const modalElement = document.getElementById('tempLogoutModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        // Handle confirm logout
+        document.getElementById('tempConfirmLogoutBtn').addEventListener('click', () => {
+            this.performLogout();
+        });
+
+        // Clean up modal when hidden
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+    }
+
+    /**
+     * Perform the actual logout
+     */
+    performLogout() {
+        // Log the logout activity if available
+        try {
+            const userEmail = localStorage.getItem('booklifyUserEmail') || 'Unknown User';
+            const userRole = localStorage.getItem('booklifyUserRole') || 'user';
+            
+            if (typeof AdminService !== 'undefined' && AdminService.logActivity) {
+                AdminService.logActivity(
+                    `${userRole === 'admin' ? 'Admin' : 'User'} Logout`, 
+                    userEmail, 
+                    `${userRole === 'admin' ? 'Administrator' : 'User'} logged out of the system`, 
+                    `${userRole}_logout`
+                );
+            }
+        } catch (error) {
+            console.warn('Could not log logout activity:', error);
+        }
+
+        // Clear all localStorage
+        localStorage.clear();
+
+        // Redirect based on current page
+        const isAdminPage = window.location.pathname.includes('admin');
+        if (isAdminPage) {
+            window.location.href = 'adminLogIn.html';
+        } else {
             window.location.href = '../index.html';
         }
     }
