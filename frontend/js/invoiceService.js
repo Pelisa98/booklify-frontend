@@ -659,45 +659,89 @@ class InvoiceService {
      */
     static async generatePDF(invoiceData, windowRef = window) {
         try {
-            // Check if jsPDF is available
+            // Prefer to render the styled HTML to PDF using html2canvas + jsPDF
+            try {
+                // Load html2canvas if needed
+                if (typeof windowRef.html2canvas === 'undefined') {
+                    await this.loadHtml2Canvas(windowRef);
+                }
+
+                // Load jsPDF if needed
+                if (typeof windowRef.jspdf === 'undefined') {
+                    await this.loadJsPDF(windowRef);
+                }
+
+                const { jsPDF } = windowRef.jspdf;
+
+                // Find the invoice container element in the invoice window
+                const element = windowRef.document.querySelector('.invoice-container') || windowRef.document.body;
+
+                // Use a higher scale for better quality
+                const canvas = await windowRef.html2canvas(element, { scale: 2, useCORS: true, allowTaint: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                let heightLeft = pdfHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pdf.internal.pageSize.getHeight();
+
+                while (heightLeft > 0) {
+                    position = heightLeft - pdfHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pdf.internal.pageSize.getHeight();
+                }
+
+                pdf.save(`${invoiceData.invoice.number}.pdf`);
+                return;
+            } catch (renderErr) {
+                console.warn('html2canvas/jsPDF rendering failed, falling back to simple jsPDF text method:', renderErr);
+                // fallback to simple text rendering below
+            }
+
+            // ----- Fallback simple jsPDF text method -----
             if (typeof windowRef.jspdf === 'undefined') {
-                // Load jsPDF dynamically
                 await this.loadJsPDF(windowRef);
             }
-            
             const { jsPDF } = windowRef.jspdf;
             const doc = new jsPDF();
-            
+
             // Set font
             doc.setFont('helvetica');
-            
+
             // Header
             doc.setFontSize(20);
             doc.setTextColor(139, 92, 246);
             doc.text('📚 Booklify Invoice', 20, 30);
-            
+
             // Invoice details
             doc.setFontSize(12);
             doc.setTextColor(0, 0, 0);
             doc.text(`Invoice Number: ${invoiceData.invoice.number}`, 20, 50);
             doc.text(`Date: ${invoiceData.invoice.date}`, 20, 60);
             doc.text(`Order ID: #${invoiceData.order.id}`, 20, 70);
-            
+
             // Customer details
             doc.text('Bill To:', 120, 50);
             doc.text(invoiceData.customer.name, 120, 60);
             doc.text(invoiceData.customer.email, 120, 70);
-            
+
             // Items table (simplified for PDF)
             let yPos = 100;
             doc.text('Items:', 20, yPos);
             yPos += 10;
-            
+
             invoiceData.items.forEach(item => {
                 doc.text(`${item.description} - ${invoiceData.totals.currency}${item.total.toFixed(2)}`, 25, yPos);
                 yPos += 10;
             });
-            
+
             // Totals
             yPos += 10;
             doc.text(`Subtotal: ${invoiceData.totals.currency}${invoiceData.totals.subtotal.toFixed(2)}`, 120, yPos);
@@ -706,13 +750,12 @@ class InvoiceService {
             yPos += 10;
             doc.setFontSize(14);
             doc.text(`Total: ${invoiceData.totals.currency}${invoiceData.totals.totalAmount.toFixed(2)}`, 120, yPos);
-            
+
             // Save PDF
             doc.save(`${invoiceData.invoice.number}.pdf`);
-            
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('PDF generation is not available. Please use the print function instead.');
+            if (window.showToast) window.showToast('PDF generation is not available. Please use the print function instead.', 'warning'); else alert('PDF generation is not available. Please use the print function instead.');
         }
     }
 
@@ -725,6 +768,27 @@ class InvoiceService {
             const script = windowRef.document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
             script.onload = resolve;
+            script.onerror = reject;
+            windowRef.document.head.appendChild(script);
+        });
+    }
+
+    /**
+     * Load html2canvas dynamically into the given windowRef
+     * @param {Window} windowRef
+     */
+    static async loadHtml2Canvas(windowRef) {
+        return new Promise((resolve, reject) => {
+            if (typeof windowRef.html2canvas !== 'undefined') return resolve();
+            const script = windowRef.document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = () => {
+                // expose as html2canvas on windowRef
+                if (typeof windowRef.html2canvas === 'undefined' && typeof windowRef.html2canvas !== 'function' && windowRef.html2canvas === undefined) {
+                    // some CDNs attach to window.html2canvas; ensure reference
+                }
+                resolve();
+            };
             script.onerror = reject;
             windowRef.document.head.appendChild(script);
         });
@@ -774,7 +838,7 @@ class InvoiceService {
         if (typeof showToast === 'function') {
             showToast(message, type);
         } else {
-            alert(message);
+            if (window.showToast) window.showToast(message, 'info'); else alert(message);
         }
     }
 
