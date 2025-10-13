@@ -69,7 +69,7 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
         console.log('🛒 Creating order with delivery address:', deliveryAddressString);
         console.log('📤 Order DTO being sent:', JSON.stringify(orderCreateDto, null, 2));
         
-        const savedOrder = await createOrder(orderCreateDto);
+    const savedOrder = await createOrder(orderCreateDto);
         console.log('✅ Order created successfully:', savedOrder.orderId);
         console.log('📋 Saved order contains:', JSON.stringify(savedOrder, null, 2));
 
@@ -80,7 +80,43 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
             paymentMethod
         });
 
-        // 5. Store the current order's delivery address for invoice generation
+        // 5. Clear the cart on successful payment so UI reflects purchase
+        try {
+            if (cart && cart.cartId) {
+                await CartService.clearCart(cart.cartId);
+                console.log('Cleared cart after payment:', cart.cartId);
+            }
+        } catch (clearErr) {
+            console.warn('Failed to clear cart after payment:', clearErr);
+        }
+
+        // 6. Notify front-end pages that inventory changed so they can refresh UI
+        try {
+            const bookIds = orderItems.map(i => i.bookId);
+            window.dispatchEvent(new CustomEvent('inventoryUpdated', { detail: { bookIds } }));
+            console.log('Dispatched inventoryUpdated event for books:', bookIds);
+        } catch (evtErr) {
+            console.warn('Failed to dispatch inventoryUpdated event:', evtErr);
+        }
+
+        // 7. Also perform an immediate client-side availability decrement so UI updates instantly
+        try {
+            for (const oi of orderItems) {
+                try {
+                    const bookResp = await fetch(`http://localhost:8081/api/book/read/${oi.bookId}`);
+                    if (!bookResp.ok) continue;
+                    const book = await bookResp.json();
+                    // Dispatch a client-side event with the book info and quantity sold
+                    window.dispatchEvent(new CustomEvent('inventoryUpdatedClient', { detail: { book, quantitySold: oi.quantity } }));
+                } catch (innerErr) {
+                    console.warn('Failed to fetch book for client-side decrement:', innerErr);
+                }
+            }
+        } catch (clientErr) {
+            console.warn('Failed client-side inventory decrement process:', clientErr);
+        }
+
+    // 7. Store the current order's delivery address for invoice generation
         const orderAddressData = {
             orderId: savedOrder.orderId,
             deliveryAddress: deliveryAddressString,
@@ -106,7 +142,7 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
             // Check if EmailService is available
             if (!window.EmailService) {
                 console.error('EmailService not available on window object');
-                alert('Payment successful! Your invoice is available in the orders page.');
+                if (window.showToast) window.showToast('Payment successful! Your invoice is available in the orders page.', 'success'); else alert('Payment successful! Your invoice is available in the orders page.');
                 return payment;
             }
             
@@ -114,20 +150,20 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
             console.log('Email sending result:', emailResult);
             
             if (emailResult && emailResult.success) {
-                alert('🎉 Payment successful! Your invoice has been generated and is ready for download. Check the popup window and notifications for details.');
+                if (window.showToast) window.showToast('🎉 Payment successful! Your invoice has been generated and is ready for download.', 'success'); else alert('🎉 Payment successful! Your invoice has been generated and is ready for download.');
             } else {
-                alert('Payment successful! Your invoice is available in the orders page.');
+                if (window.showToast) window.showToast('Payment successful! Your invoice is available in the orders page.', 'success'); else alert('Payment successful! Your invoice is available in the orders page.');
             }
         } catch (emailError) {
             console.error('Failed to send invoice email:', emailError);
-            alert('Payment successful! Note: There was an issue sending your invoice email, but you can download it from your orders page.');
+            if (window.showToast) window.showToast('Payment succeeded but we could not send the invoice email. You can download it from your orders page.', 'warning'); else alert('Payment successful! Note: There was an issue sending your invoice email, but you can download it from your orders page.');
         }
         
         // Optionally redirect to confirmation page
         // window.location.href = 'confirmation.html';
         return payment;
     } catch (error) {
-        alert('Payment failed: ' + error.message);
+        if (window.showToast) window.showToast('Payment failed: ' + error.message, 'danger'); else alert('Payment failed: ' + error.message);
         throw error;
     }
 }
