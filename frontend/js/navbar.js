@@ -395,6 +395,22 @@ class NavbarComponent {
     }
 }
 
+// Instantiate and attach to window for other scripts to call
+window.NavbarComponent = new NavbarComponent();
+// Ensure toast helper is available for pages that rely on window.showToast
+(function ensureToastHelper() {
+    if (window.showToast) return;
+    try {
+        const s = document.createElement('script');
+        s.src = './toastHelper.js';
+        s.defer = true;
+        document.head.appendChild(s);
+    } catch (e) {
+        // best-effort; pages may include toastHelper.js themselves
+        console.warn('Failed to auto-load toastHelper.js:', e);
+    }
+})();
+
 // Make NavbarComponent available globally
 window.NavbarComponent = NavbarComponent;
 
