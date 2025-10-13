@@ -417,7 +417,7 @@ class AdminService {
     // Redirect to login if not authenticated
     static checkAuthAndRedirect() {
         if (!this.isAdminAuthenticated()) {
-            alert('Your admin session has expired. Please login again.');
+                    if (window.showToast) window.showToast('Your admin session has expired. Please login again.', 'warning'); else alert('Your admin session has expired. Please login again.');
             window.location.href = 'adminLogIn.html';
             return false;
         }
@@ -625,28 +625,10 @@ class AdminService {
                 console.warn('Failed to fetch order items for activities:', error.message);
             }
 
-            // If no real activities found, show some sample recent activities
+            // If no real activities found, return an empty list so the UI can show the empty state
+            // (Avoid adding hard-coded or sample activities here.)
             if (activities.length === 0) {
-                console.log('No real activities found, creating sample activities...');
-                const sampleActivities = [
-                    {
-                        action: 'System Status',
-                        user: 'System',
-                        details: 'Admin dashboard loaded successfully',
-                        date: new Date().toISOString(),
-                        type: 'system',
-                        icon: 'bi-check-circle'
-                    },
-                    {
-                        action: 'Data Sync',
-                        user: 'System',
-                        details: 'Database synchronized',
-                        date: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-                        type: 'system',
-                        icon: 'bi-arrow-clockwise'
-                    }
-                ];
-                activities.push(...sampleActivities);
+                console.log('No real activities found for recent activities; returning empty list');
             }
             
             // Sort all activities by date (newest first) and limit results
@@ -884,35 +866,8 @@ class AdminService {
 
             // Step 6: Return results or fallback
             if (cleanActivities.length === 0) {
-                console.log('📝 No activities found, creating default activities...');
-                const now = Date.now();
-                const defaultActivities = [
-                    {
-                        action: 'System Ready',
-                        user: 'System',
-                        details: 'Admin dashboard initialized successfully',
-                        date: new Date(now).toISOString(),
-                        type: 'system',
-                        icon: 'bi-check-circle'
-                    },
-                    {
-                        action: 'Dashboard Access', 
-                        user: 'Admin',
-                        details: 'Administrator accessed the dashboard',
-                        date: new Date(now - 60000).toISOString(),
-                        type: 'admin_action',
-                        icon: 'bi-speedometer2'
-                    },
-                    {
-                        action: 'System Load',
-                        user: 'System', 
-                        details: 'All administrative functions loaded',
-                        date: new Date(now - 120000).toISOString(),
-                        type: 'system',
-                        icon: 'bi-gear'
-                    }
-                ];
-                return defaultActivities;
+                console.log('📝 No activities found in enhanced fetch; returning empty list');
+                return [];
             }
 
             console.log('🎯 Returning', cleanActivities.length, 'activities');
