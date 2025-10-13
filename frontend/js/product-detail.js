@@ -16,6 +16,73 @@ class ProductDetailController {
         try {
             await this.loadBookDetails();
             this.setupEventListeners();
+            // Reload when inventory has been updated elsewhere (e.g., after purchase)
+            window.addEventListener('inventoryUpdated', async (e) => {
+                try {
+                    const updatedIds = (e && e.detail && e.detail.bookIds) || [];
+                    if (!updatedIds || updatedIds.length === 0) return;
+                    const currentId = this.currentBook && (this.currentBook.bookID ?? this.currentBook.bookId ?? this.currentBook.id);
+                    if (!currentId) return;
+                    // Normalize to strings to avoid type mismatches (number vs string)
+                    const normalized = updatedIds.map(id => String(id));
+                    if (normalized.includes(String(currentId))) {
+                        // Reload details for this book to reflect new availability
+                        await this.loadBookDetails();
+                    }
+                } catch (err) {
+                    console.warn('Error handling inventoryUpdated in product-detail:', err);
+                }
+            });
+
+            // Apply light-weight client-side decrements to improve perceived responsiveness
+            window.addEventListener('inventoryUpdatedClient', (e) => {
+                try {
+                    const { book, quantitySold } = e.detail || {};
+                    if (!book || (typeof quantitySold === 'undefined' || quantitySold === null)) return;
+
+                    // Normalize ids (backend payloads sometimes use bookID, bookId or id)
+                    const incomingBookId = book.bookID ?? book.bookId ?? book.id ?? null;
+                    // Debug: log the incoming event payload for diagnosis
+                    try {
+                        console.debug('inventoryUpdatedClient event received', { incomingBookId, quantitySold, rawBook: book });
+                    } catch (_) { /* ignore */ }
+                    if (!incomingBookId) return;
+
+                    const currentId = this.currentBook && (this.currentBook.bookID ?? this.currentBook.bookId ?? this.currentBook.id);
+                    try {
+                        console.debug('product-detail current state before decrement', {
+                            currentId,
+                            booksByConditionSummary: Object.fromEntries(Object.keys(this.booksByCondition || {}).map(k => [k, (this.booksByCondition[k] || []).length]))
+                        });
+                    } catch (_) { /* ignore */ }
+                    if (!currentId) return;
+
+                    if (String(incomingBookId) === String(currentId)) {
+                        // Update currentBook.available and re-render conditions
+                        this.currentBook.available = Math.max(0, (this.currentBook.available || 0) - quantitySold);
+                        if (this.booksByCondition) {
+                            // Find the book within grouped list and decrement available there too
+                            for (const cond in this.booksByCondition) {
+                                this.booksByCondition[cond] = this.booksByCondition[cond].map(b => {
+                                    const bId = b.bookID ?? b.bookId ?? b.id;
+                                    if (bId && String(bId) === String(incomingBookId)) {
+                                        // Use numeric fallback when b.available is undefined
+                                        const currentAvail = (typeof b.available === 'number') ? b.available : (b.isAvailable === false ? 0 : 1);
+                                        b.available = Math.max(0, currentAvail - quantitySold);
+                                    }
+                                    return b;
+                                }).filter(b => {
+                                    const avail = (typeof b.available === 'number') ? b.available : (b.isAvailable === false ? 0 : 1);
+                                    return avail > 0;
+                                });
+                            }
+                        }
+                        this.renderBookDetailsWithConditions(this.currentBook, this.booksByCondition);
+                    }
+                } catch (err) {
+                    console.warn('inventoryUpdatedClient handler error (product-detail):', err);
+                }
+            });
         } catch (error) {
             console.error('Failed to initialize product detail page:', error);
             this.showError(error.message);
@@ -109,6 +176,27 @@ class ProductDetailController {
         }
     }
 
+    // Normalize available on a book record
+    normalizeAvailable(b) {
+        if (!b) return 0;
+        if (typeof b.available === 'number') return b.available;
+        if (typeof b.available === 'string' && b.available.trim() !== '') {
+            const parsed = parseInt(b.available, 10);
+            if (!Number.isNaN(parsed)) return parsed;
+        }
+        if (b.isAvailable === false) return 0;
+        return 1;
+    }
+
+    // Compute total available copies across grouped conditions
+    computeTotalAvailable(booksByCondition) {
+        if (!booksByCondition) return 0;
+        return Object.values(booksByCondition).reduce((sum, arr) => {
+            const groupSum = arr.reduce((s, b) => s + this.normalizeAvailable(b), 0);
+            return sum + groupSum;
+        }, 0);
+    }
+
     //Show error message
 
     showError(message) {
@@ -173,6 +261,9 @@ class ProductDetailController {
         // Add event listeners for "Add Cheapest" buttons
         document.querySelectorAll('.add-cheapest-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
+                try {
+                    console.debug('add-cheapest-btn click', { dataset: e.target.dataset });
+                } catch (err) { /* ignore */ }
                 const condition = e.target.dataset.condition;
                 const price = parseFloat(e.target.dataset.price);
                 
@@ -251,7 +342,8 @@ class ProductDetailController {
 
         sortedConditions.forEach(condition => {
             const books = booksByCondition[condition];
-            const quantity = books.length;
+            // Sum available counts for books in this condition. Fall back to count of records.
+            const quantity = books.reduce((sum, b) => sum + this.normalizeAvailable(b), 0);
             const prices = books.map(book => book.price).sort((a, b) => a - b);
             const lowestPrice = prices[0];
             const highestPrice = prices[prices.length - 1];
@@ -273,7 +365,8 @@ class ProductDetailController {
                     <div class="row align-items-center">
                         <div class="col-md-3">
                             <h6 class="fw-bold text-${details.color} mb-1">${condition}</h6>
-                            <small class="text-muted">${quantity} Available from ${books.length > 1 ? books.length + ' sellers' : '1 seller'}</small>
+                            <small class="text-muted">${quantity} available from ${books.length > 1 ? books.length + ' sellers' : '1 seller'}</small>
+                            ${quantity === 0 ? '<div class="mt-2"><span class="badge bg-danger">Sold out</span></div>' : ''}
                         </div>
                         <div class="col-md-4">
                             <span class="h5 fw-bold text-purple">${priceDisplay}</span>
@@ -285,11 +378,11 @@ class ProductDetailController {
                                         data-condition="${condition}">
                                     <i class="bi bi-eye me-1"></i> VIEW OPTIONS
                                 </button>
-                                <button class="btn btn-outline-secondary btn-sm add-cheapest-btn" 
+                                <button ${quantity === 0 ? 'disabled class="btn btn-outline-secondary btn-sm disabled"' : 'class="btn btn-outline-secondary btn-sm add-cheapest-btn"'} 
                                         data-condition="${condition}" 
                                         data-price="${lowestPrice}"
                                         title="Add cheapest option to cart">
-                                    <i class="bi bi-cart-plus me-1"></i> CHEAPEST
+                                    <i class="bi bi-cart-plus me-1"></i> ${quantity === 0 ? 'Unavailable' : 'CHEAPEST'}
                                 </button>
                             </div>
                         </div>
@@ -337,15 +430,95 @@ class ProductDetailController {
                     </div>
 
                     <div class="d-grid gap-2 mt-4">
-                        <button class="btn btn-purple btn-lg" id="addToCartBtn">
-                            <i class="bi bi-cart-plus me-2"></i> Add to Cart
-                        </button>
+                        ${this.computeTotalAvailable(this.booksByCondition) === 0 ? `
+                            <button class="btn btn-secondary btn-lg disabled" id="addToCartBtn" aria-disabled="true">
+                                <i class="bi bi-x-circle me-2"></i> Sold out
+                            </button>
+                        ` : `
+                            <button class="btn btn-purple btn-lg" id="addToCartBtn">
+                                <i class="bi bi-cart-plus me-2"></i> Add to Cart
+                            </button>
+                        `}
                     </div>
                 </div>
             </div>
         `;
 
         this.productDetailContainer.innerHTML = bookDetailsHtml;
+
+        // Determine total available. Compute grouped sum first.
+        let totalAvailable = this.computeTotalAvailable(this.booksByCondition);
+
+        // Debug logging to help trace availability decisions
+        try {
+            console.debug('product-detail availability debug', {
+                bookId: this.currentBook && this.currentBook.bookID,
+                mainAvailable: this.currentBook && this.currentBook.available,
+                mainIsAvailable: this.currentBook && this.currentBook.isAvailable,
+                groupedSum: totalAvailable,
+                booksByCondition: this.booksByCondition
+            });
+        } catch (e) { /* ignore */ }
+
+        // If the main book provides an explicit availability or isAvailable flag, treat it as authoritative.
+        // This prevents grouped fallbacks (which assume missing counts => 1) from incorrectly showing stock.
+        if (this.currentBook) {
+            const hasExplicitMainAvail = (typeof this.currentBook.available === 'number') || (this.currentBook.isAvailable === false);
+            if (hasExplicitMainAvail) {
+                const mainAvail = this.normalizeAvailable(this.currentBook);
+                // Override grouped total when main record explicitly indicates 0 availability
+                if (mainAvail === 0) {
+                    totalAvailable = 0;
+                }
+            }
+        }
+
+        // If ?debug=true is present in URL, append a visible debug box showing availability reasoning
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('debug') === 'true') {
+                let dbg = this.productDetailContainer.querySelector('#productAvailabilityDebug');
+                if (!dbg) {
+                    dbg = document.createElement('pre');
+                    dbg.id = 'productAvailabilityDebug';
+                    dbg.style.background = '#fff3cd';
+                    dbg.style.padding = '8px';
+                    dbg.style.border = '1px solid #ffeeba';
+                    dbg.style.color = '#856404';
+                    dbg.style.marginTop = '12px';
+                    this.productDetailContainer.appendChild(dbg);
+                }
+                dbg.textContent = JSON.stringify({
+                    bookId: this.currentBook && this.currentBook.bookID,
+                    mainAvailable: this.currentBook && this.currentBook.available,
+                    mainIsAvailable: this.currentBook && this.currentBook.isAvailable,
+                    groupedSum: this.computeTotalAvailable(this.booksByCondition),
+                    finalTotalAvailable: totalAvailable,
+                    booksByCondition: this.booksByCondition
+                }, null, 2);
+            }
+        } catch (e) { /* ignore */ }
+
+        // If total availability is zero, show a prominent sold-out alert at top and disable add to cart
+        if (totalAvailable <= 0) {
+            const existing = this.productDetailContainer.querySelector('.page-sold-out-banner');
+            if (!existing) {
+                const banner = document.createElement('div');
+                banner.className = 'page-sold-out-banner alert alert-danger text-center mb-3';
+                banner.textContent = 'Sold out - no copies are currently available for this title.';
+                this.productDetailContainer.insertBefore(banner, this.productDetailContainer.firstChild);
+            }
+            // disable any add-to-cart button rendered earlier
+            const addToCartBtn = this.productDetailContainer.querySelector('#addToCartBtn');
+            if (addToCartBtn) {
+                addToCartBtn.classList.remove('btn-purple');
+                addToCartBtn.classList.add('btn-secondary');
+                addToCartBtn.setAttribute('disabled', 'disabled');
+                addToCartBtn.setAttribute('aria-disabled', 'true');
+                addToCartBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i> Sold out';
+            }
+        }
+
         this.setupAddToCartHandler(book);
     }
 
@@ -360,28 +533,92 @@ class ProductDetailController {
     }
 
     //Handle add to cart functionality
-    async handleAddToCart(bookId, condition = null) {
+    // Accept either a book object or a bookId (string/number). condition optional.
+    async handleAddToCart(bookOrId, condition = null) {
         const userId = localStorage.getItem('booklifyUserId');
         
         if (!userId) {
-            alert('You must be logged in to add items to your cart.');
+            if (window.showToast) window.showToast('You must be logged in to add items to your cart.', 'warning'); else alert('You must be logged in to add items to your cart.');
             window.location.href = 'login.html';
             return;
         }
 
-        // Find the specific book to add
-        let bookToAdd;
-        if (condition && this.groupedBooks) {
-            // For condition-based selection, find the first available book of that condition
-            const conditionBooks = this.groupedBooks[condition];
-            bookToAdd = conditionBooks && conditionBooks.length > 0 ? conditionBooks[0] : null;
+        // Debug helper: show a visible toast if ?debug=true is present
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('debug') === 'true') {
+                // small visual toast so the tester knows the click reached here
+                if (window.showToast) window.showToast('handleAddToCart invoked', 'info', 1500);
+            }
+        } catch (e) { /* ignore */ }
+
+        // Normalize the input: it can be a full book object or an id
+        let bookToAdd = null;
+        let bookId = null;
+        if (bookOrId && typeof bookOrId === 'object') {
+            bookToAdd = bookOrId;
+            bookId = bookToAdd.bookID || bookToAdd.bookId || null;
         } else {
-            // For regular selection, use the provided bookId
-            bookToAdd = this.currentBook || { bookID: bookId };
+            bookId = bookOrId;
+        }
+
+        // If a condition is provided, prefer to pick from groupedBooks[condition]
+        if (condition && this.groupedBooks) {
+            const conditionBooks = this.groupedBooks[condition] || [];
+            if (!bookToAdd && bookId) {
+                bookToAdd = conditionBooks.find(b => String(b.bookID) === String(bookId) || String(b.bookId) === String(bookId));
+            }
+            if (!bookToAdd) {
+                bookToAdd = conditionBooks.length > 0 ? conditionBooks[0] : null;
+            }
+        }
+
+        // If still not found, and we have groupedBooks, search across all conditions for a matching bookId
+        if (!bookToAdd && bookId && this.groupedBooks) {
+            for (const cond of Object.keys(this.groupedBooks)) {
+                const found = (this.groupedBooks[cond] || []).find(b => String(b.bookID) === String(bookId) || String(b.bookId) === String(bookId));
+                if (found) { bookToAdd = found; break; }
+            }
+        }
+
+        // If still not found, fall back to the main loaded book when appropriate
+        if (!bookToAdd) {
+            if (this.currentBook && (!bookId || String(this.currentBook.bookID) === String(bookId))) {
+                bookToAdd = this.currentBook;
+            } else if (bookId) {
+                // Last resort: create a minimal object with bookID so downstream code can use it
+                bookToAdd = { bookID: bookId };
+            }
         }
 
         if (!bookToAdd) {
-            alert('Selected book is not available.');
+            if (window.showToast) window.showToast('Selected book is not available.', 'warning'); else alert('Selected book is not available.');
+            return;
+        }
+
+        // Debug: log resolved book and user context
+        try {
+            console.debug('handleAddToCart - resolved', { bookToAdd, bookId, condition, currentUserId: userId });
+        } catch (e) { /* ignore */ }
+
+        // Prevent the owner/seller from purchasing their own listing
+        try {
+            // Robust owner extraction across many possible property names
+            const ownerId = bookToAdd?.userID ?? bookToAdd?.userId ?? bookToAdd?.user?.id ?? bookToAdd?.user?.userId ?? bookToAdd?.sellerId ?? bookToAdd?.ownerId ?? bookToAdd?.uploadedBy ?? null;
+            // userId stored in localStorage may be a string; compare as strings for safety
+            if (ownerId && userId && String(ownerId) === String(userId)) {
+                if (window.showToast) window.showToast('You cannot purchase your own listing.', 'warning'); else alert('You cannot purchase your own listing.');
+                return;
+            }
+        } catch (e) {
+            // If something goes wrong reading owner, log for diagnostics and continue
+            console.debug('owner check failed', e);
+        }
+
+        // Verify availability using the authoritative `available` field and normalize non-numeric values
+        const availableCount = this.normalizeAvailable(bookToAdd);
+        if (availableCount <= 0) {
+            if (window.showToast) window.showToast('Selected book is out of stock.', 'warning'); else alert('Selected book is out of stock.');
             return;
         }
 
@@ -397,7 +634,13 @@ class ProductDetailController {
             const existingItem = cart.cartItems?.find(item => item.book.bookID === bookToAdd.bookID);
 
             if (existingItem) {
-                await CartService.updateCartItemsQuantity(cart.cartId, bookToAdd.bookID, existingItem.quantity + 1);
+                // Prevent increasing quantity beyond available
+                const currentQty = existingItem.quantity || 0;
+                if (currentQty + 1 > availableCount) {
+                    if (window.showToast) window.showToast('Cannot add more than available stock for this book.', 'warning'); else alert('Cannot add more than available stock for this book.');
+                } else {
+                    await CartService.updateCartItemsQuantity(cart.cartId, bookToAdd.bookID, currentQty + 1);
+                }
             } else {
                 if (!cart.cartItems) {
                     cart.cartItems = [];
@@ -424,7 +667,7 @@ class ProductDetailController {
 
         } catch (error) {
             console.error('Failed to add to cart:', error);
-            alert('Failed to add to cart: ' + error.message);
+            if (window.showToast) window.showToast('Failed to add to cart: ' + error.message, 'danger'); else alert('Failed to add to cart: ' + error.message);
         }
     }
 
@@ -489,6 +732,9 @@ class ProductDetailController {
         // Add event listeners to seller selection buttons
         modalContent.querySelectorAll('.select-seller-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
+                try {
+                    console.debug('select-seller-btn click', { dataset: e.target.dataset });
+                } catch (err) { /* ignore */ }
                 const bookId = e.target.dataset.bookId;
                 const condition = e.target.dataset.condition;
                 
@@ -695,11 +941,11 @@ class ProductDetailController {
             // Reload reviews to update average rating
             await this.loadReviews(this.currentBook.bookID);
 
-            alert('Review deleted successfully!');
+            if (window.showToast) window.showToast('Review deleted successfully!', 'success'); else alert('Review deleted successfully!');
 
         } catch (error) {
             console.error('Failed to delete review:', error);
-            alert('Failed to delete review: ' + error.message);
+            if (window.showToast) window.showToast('Failed to delete review: ' + error.message, 'danger'); else alert('Failed to delete review: ' + error.message);
         }
     }
 
