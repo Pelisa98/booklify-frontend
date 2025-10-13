@@ -11,9 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const firstBook = books[0];
         const imageUrl = `http://localhost:8081/api/book/image/${firstBook.bookID}`;
         
-        // Determine price display
+        // Determine price display or sold-out state
         let priceDisplay;
-        if (minPrice === maxPrice) {
+        if (totalAvailable === 0) {
+            priceDisplay = `<span class="badge bg-danger">Sold out</span>`;
+        } else if (minPrice === maxPrice) {
             priceDisplay = `R${minPrice.toFixed(2)}`;
         } else {
             priceDisplay = `R${minPrice.toFixed(2)} - R${maxPrice.toFixed(2)}`;
@@ -28,9 +30,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const extraConditions = conditions.length > 3 ? `<span class="text-muted">+${conditions.length - 3} more</span>` : '';
 
+        // Embed the primary book id on the card so clients can update by id when events arrive
+        const firstBookId = firstBook.bookID ?? firstBook.bookId ?? firstBook.id ?? '';
         return `
             <div class="col-md-4 col-lg-3">
-                <div class="card book-card h-100 shadow-sm">
+                <div class="card book-card h-100 shadow-sm" data-first-book-id="${firstBookId}">
                     <img src="${imageUrl}" class="card-img-top" alt="${title}" style="height: 300px; object-fit: cover;">
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">${title}</h5>
@@ -42,7 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="mb-2">
                             ${conditionBadges}${extraConditions}
                         </div>
-                        <a href="product-detail.html?title=${encodeURIComponent(title)}" class="btn btn-purple mt-auto">View Details</a>
+                        <a ${totalAvailable === 0 ? 'href="#" aria-disabled="true" class="btn btn-secondary disabled mt-auto"' : `href="product-detail.html?title=${encodeURIComponent(title)}" class="btn btn-purple mt-auto"`}>
+                            ${totalAvailable === 0 ? 'Sold out' : 'View Details'}
+                        </a>
                     </div>
                 </div>
             </div>
@@ -82,7 +88,17 @@ document.addEventListener('DOMContentLoaded', function() {
             grouped[key].books.push(book);
             grouped[key].minPrice = Math.min(grouped[key].minPrice, book.price);
             grouped[key].maxPrice = Math.max(grouped[key].maxPrice, book.price);
-            grouped[key].totalAvailable += 1; // Assuming each book record represents 1 available copy
+            // Normalize available: prefer numeric available, else parse integer, else use isAvailable flag, else fallback to 1
+            let avail = 1;
+            if (typeof book.available === 'number') {
+                avail = book.available;
+            } else if (typeof book.available === 'string' && book.available.trim() !== '') {
+                const parsed = parseInt(book.available, 10);
+                avail = Number.isNaN(parsed) ? 1 : parsed;
+            } else if (book.isAvailable === false) {
+                avail = 0;
+            }
+            grouped[key].totalAvailable += avail;
         });
 
         return Object.values(grouped);
@@ -160,4 +176,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial load of all books
     fetchAllBooks();
+
+    // Expose a refresh method for other modules and listen for inventory updates
+    window.BookList = window.BookList || {};
+    window.BookList.refresh = fetchAllBooks;
+
+    window.addEventListener('inventoryUpdated', (e) => {
+        try {
+            console.log('products.js detected inventoryUpdated, refreshing list');
+            fetchAllBooks();
+        } catch (err) {
+            console.warn('Failed to refresh product list on inventoryUpdated:', err);
+        }
+    });
+
+    // Lightweight client-side update to reduce flicker: decrement counts when individual book updates arrive
+    window.addEventListener('inventoryUpdatedClient', (e) => {
+        try {
+            const { book, quantitySold } = e.detail || {};
+            if (!book || (typeof quantitySold === 'undefined' || quantitySold === null)) return;
+
+            // Prefer id-based matching (bookID, bookId or id) — falls back to title when id not present
+            const incomingId = book.bookID ?? book.bookId ?? book.id ?? null;
+            const incomingTitle = (book.title || '').toLowerCase();
+
+            const cards = document.querySelectorAll('.book-card');
+            cards.forEach(card => {
+                try {
+                    const cardId = card.dataset.firstBookId;
+                    let matched = false;
+                    if (incomingId && cardId && String(incomingId) === String(cardId)) matched = true;
+                    if (!matched && incomingTitle) {
+                        const titleEl = card.querySelector('.card-title');
+                        if (titleEl) {
+                            const titleText = titleEl.textContent.trim().toLowerCase();
+                            if (titleText === incomingTitle) matched = true;
+                        }
+                    }
+                    if (!matched) return;
+
+                    const small = card.querySelector('.card-text small.text-muted, .card-body small.text-muted');
+                    if (small && small.textContent) {
+                        // Attempt to parse number from text like "X available"
+                        const m = small.textContent.match(/(\d+)\s+available/);
+                        if (m) {
+                            const current = parseInt(m[1], 10);
+                            const next = Math.max(0, current - quantitySold);
+                            small.textContent = `${next} available from ${card.querySelectorAll('.badge').length} seller${card.querySelectorAll('.badge').length > 1 ? 's' : ''}`;
+                        }
+                    }
+                } catch (inner) { /* ignore per-card errors */ }
+            });
+        } catch (err) {
+            console.warn('inventoryUpdatedClient handler error (products):', err);
+        }
+    });
 });
