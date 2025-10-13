@@ -31,7 +31,7 @@ class AuthService {
                 cartLink.addEventListener('click', (e) => {
                     if (!this.isLoggedIn()) {
                         e.preventDefault();
-                        alert('Please log in to access your cart');
+                        if (window.showToast) window.showToast('Please log in to access your cart', 'warning'); else alert('Please log in to access your cart');
                         window.location.href = 'login.html';
                     }
                 });
