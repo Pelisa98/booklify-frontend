@@ -30,7 +30,7 @@ class ReviewsPage {
 
         // Check if user is admin
         if (this.currentUser.role !== 'admin') {
-            alert('Access denied. This page is for administrators only.');
+            if (window.showToast) window.showToast('Access denied. This page is for administrators only.', 'danger'); else alert('Access denied. This page is for administrators only.');
             window.location.href = '../index.html';
             return;
         }
