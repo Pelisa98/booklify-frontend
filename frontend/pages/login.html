@@ -177,7 +177,7 @@
                     await UserService.login(email, password);
                     window.location.href = 'profile.html';
                 } catch (error) {
-                    alert(error.message || 'Login failed. Please try again.');
+                    if (window.showToast) window.showToast(error.message || 'Login failed. Please try again.', 'danger'); else alert(error.message || 'Login failed. Please try again.');
                 }
             });
 
@@ -191,7 +191,7 @@
                 const bio = document.getElementById('registerBio').value;
 
                 if (password !== confirmPassword) {
-                    alert('Passwords do not match!');
+                    if (window.showToast) window.showToast('Passwords do not match!', 'warning'); else alert('Passwords do not match!');
                     return;
                 }
 
@@ -202,10 +202,10 @@
                         password,
                         bio
                     });
-                    alert('Registration successful! Please login.');
+                    if (window.showToast) window.showToast('Registration successful! Please login.', 'success'); else alert('Registration successful! Please login.');
                     loginRegisterWrapper.classList.remove('show-register');
                 } catch (error) {
-                    alert(error.message || 'Registration failed. Please try again.');
+                    if (window.showToast) window.showToast(error.message || 'Registration failed. Please try again.', 'danger'); else alert(error.message || 'Registration failed. Please try again.');
                 }
             });
 
