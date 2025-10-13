@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             
             if (!isValid) {
-                alert('Please fill in all required fields');
+                if (window.showToast) window.showToast('Please fill in all required fields', 'warning'); else alert('Please fill in all required fields');
                 return;
             }
             
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearBtn.addEventListener('click', (e) => {
             e.preventDefault();
             clearAddressForm();
-            alert('Form cleared! Please enter a new address for this order.');
+            if (window.showToast) window.showToast('Form cleared! Please enter a new address for this order.', 'info'); else alert('Form cleared! Please enter a new address for this order.');
         });
     }
 });
