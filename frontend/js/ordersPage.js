@@ -523,7 +523,7 @@ async function updateOrderAddress(orderId, newAddress) {
     
     localStorage.setItem(`orderAddress_${orderId}`, JSON.stringify(addressData));
     console.log('✅ Manually updated address for order', orderId, ':', newAddress);
-    alert(`Address updated for order ${orderId}. Regenerate the invoice to see the change.`);
+    if (window.showToast) window.showToast(`Address updated for order ${orderId}. Regenerate the invoice to see the change.`, 'info'); else alert(`Address updated for order ${orderId}. Regenerate the invoice to see the change.`);
 }
 
 // Make function available globally for console access
