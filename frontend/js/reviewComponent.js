@@ -292,12 +292,12 @@ class ReviewComponent {
         const comment = document.getElementById('reviewComment').value.trim();
 
         if (!rating || rating < 1 || rating > 5) {
-            alert('Please select a valid rating (1-5 stars)');
+            if (window.showToast) window.showToast('Please select a valid rating (1-5 stars)', 'warning'); else alert('Please select a valid rating (1-5 stars)');
             return;
         }
 
         if (!comment) {
-            alert('Please write a comment for your review');
+            if (window.showToast) window.showToast('Please write a comment for your review', 'warning'); else alert('Please write a comment for your review');
             return;
         }
 
@@ -312,11 +312,11 @@ class ReviewComponent {
             if (this.currentReview) {
                 // Update existing review
                 await ReviewService.updateReview(this.currentReview.reviewId || this.currentReview.id, { rating, comment });
-                alert('Review updated successfully!');
+                if (window.showToast) window.showToast('Review updated successfully!', 'success'); else alert('Review updated successfully!');
             } else {
                 // Create new review
                 await ReviewService.createReview(reviewData);
-                alert('Review submitted successfully!');
+                if (window.showToast) window.showToast('Review submitted successfully!', 'success'); else alert('Review submitted successfully!');
             }
 
             // Reload reviews and re-render
@@ -326,7 +326,7 @@ class ReviewComponent {
         } catch (error) {
             console.error('Review submission error:', error);
             const errorMessage = error.message || 'Failed to submit review. Please try again.';
-            alert(`Error: ${errorMessage}`);
+            if (window.showToast) window.showToast(`Error: ${errorMessage}`, 'danger'); else alert(`Error: ${errorMessage}`);
         }
     }
 
