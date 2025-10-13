@@ -64,6 +64,14 @@
         </div>
     </div>
     <script>
+        // Load toast helper
+        (function loadToast(){
+            const s = document.createElement('script');
+            s.src = '../js/toastHelper.js';
+            s.defer = true;
+            document.head.appendChild(s);
+        })();
+
         document.addEventListener('DOMContentLoaded', function() {
             const paymentType = document.getElementById('paymentType');
             const cardFields = document.getElementById('cardFields');
@@ -99,12 +107,20 @@
                         const paymentMethod = localStorage.getItem('booklifyPaymentMethod') || (paymentType.value === 'card' ? 'CARD' : 'EFT');
                         // Fetch address for user (should exist from checkout)
                         const addressRes = await fetch(`http://localhost:8081/api/addresses/user/${userId}`);
-                        if (!addressRes.ok) throw new Error('Address not found');
+                        if (!addressRes.ok) {
+                            const t = await addressRes.text();
+                            console.error('Address fetch failed:', addressRes.status, t);
+                            throw new Error(`Address lookup failed: ${addressRes.status} ${addressRes.statusText} - ${t}`);
+                        }
                         const address = await addressRes.json();
                         const addressId = address.id;
                         // Fetch cart
                         const cartRes = await fetch(`http://localhost:8081/api/cart/getByUserId/${userId}`);
-                        if (!cartRes.ok) throw new Error('Cart not found');
+                        if (!cartRes.ok) {
+                            const t = await cartRes.text();
+                            console.error('Cart fetch failed:', cartRes.status, t);
+                            throw new Error(`Cart lookup failed: ${cartRes.status} ${cartRes.statusText} - ${t}`);
+                        }
                         const cart = await cartRes.json();
                         // Build order items
                         const orderItems = (cart.cartItems || []).map(item => ({
@@ -112,6 +128,59 @@
                             quantity: item.quantity,
                             orderStatus: 'PENDING'
                         }));
+
+                        // Pre-check availability and auto-adjust cart if shortages found
+                        async function preCheckAndAdjust(orderItems, cart) {
+                            const shortages = [];
+                            // fetch latest book data in parallel
+                            const fetches = orderItems.map(i => fetch(`http://localhost:8081/api/book/read/${i.bookId}`).then(r => ({ r, i })).catch(e => ({ err: e, i })));
+                            const results = await Promise.all(fetches);
+                            for (const resObj of results) {
+                                const i = resObj.i;
+                                if (resObj.err) {
+                                    shortages.push({ bookId: i.bookId, required: i.quantity, available: 0, reason: 'Fetch error' });
+                                    continue;
+                                }
+                                const r = resObj.r;
+                                if (!r.ok) {
+                                    const t = await r.text().catch(()=>'');
+                                    shortages.push({ bookId: i.bookId, required: i.quantity, available: 0, reason: `Fetch failed: ${r.status} ${t}` });
+                                    continue;
+                                }
+                                const book = await r.json();
+                                const available = (typeof book.available === 'number') ? book.available : 0;
+                                if (available < i.quantity) {
+                                    shortages.push({ bookId: i.bookId, required: i.quantity, available, reason: 'Insufficient stock' });
+                                }
+                            }
+
+                            if (shortages.length === 0) return [];
+
+                            // Auto-adjust cart: set quantities to available for affected items
+                            for (const s of shortages) {
+                                try {
+                                    // Update via CartService endpoint
+                                    await fetch(`http://localhost:8081/api/cart/updateCartItemsQuantity/${cart.cartId}/${s.bookId}/${s.available}`, { method: 'PUT' });
+                                } catch (err) {
+                                    console.warn('Failed to auto-adjust cart for book', s.bookId, err);
+                                }
+                            }
+
+                            return shortages;
+                        }
+
+                        const shortages = await preCheckAndAdjust(orderItems, cart);
+                        if (shortages.length) {
+                            const msg = shortages.map(s => `Book id ${s.bookId}: required ${s.required}, available ${s.available} ${s.reason? '('+s.reason+')':''}`).join('\n');
+                            if (window.showToast) {
+                                window.showToast('Some items were adjusted due to low stock. Check your cart.', 'warning', 6000);
+                            } else {
+                                alert('Some items were adjusted due to low stock. Check your cart.');
+                            }
+                            // Redirect user back to cart to review changes
+                            setTimeout(() => window.location.href = 'cart.html', 800);
+                            return;
+                        }
                         // Create order
                         const orderRes = await fetch('http://localhost:8081/api/orders/create', {
                             method: 'POST',
@@ -122,7 +191,11 @@
                                 orderItems
                             })
                         });
-                        if (!orderRes.ok) throw new Error('Order creation failed');
+                        if (!orderRes.ok) {
+                            const t = await orderRes.text();
+                            console.error('Order creation failed:', orderRes.status, t);
+                            throw new Error(`Order creation failed: ${orderRes.status} ${orderRes.statusText} - ${t}`);
+                        }
                         const order = await orderRes.json();
                         // Create payment
                         const paymentRes = await fetch('http://localhost:8081/api/payments/create', {
@@ -134,10 +207,17 @@
                                 paymentMethod
                             })
                         });
-                        if (!paymentRes.ok) throw new Error('Payment failed');
+                        if (!paymentRes.ok) {
+                            const t = await paymentRes.text();
+                            console.error('Payment creation failed:', paymentRes.status, t);
+                            throw new Error(`Payment failed: ${paymentRes.status} ${paymentRes.statusText} - ${t}`);
+                        }
                         // Optionally clear cart (delete or empty)
-                        await fetch(`http://localhost:8081/api/cart/clear/${cart.cartId}`, { method: 'DELETE' });
-
+                        const clearRes = await fetch(`http://localhost:8081/api/cart/clear/${cart.cartId}`, { method: 'DELETE' });
+                        if (!clearRes.ok) {
+                            const t = await clearRes.text();
+                            console.warn('Clearing cart returned non-ok:', clearRes.status, t);
+                        }
                         loadingSpinner.style.display = 'none';
                         document.getElementById('processingMsg').style.display = 'none';
                         processBtn.disabled = false;
@@ -149,7 +229,15 @@
                         loadingSpinner.style.display = 'none';
                         processBtn.disabled = false;
                     }
-                }, 2000);
+                }, 2000).catch(err => {
+                    // Extra safety: catch promise rejections from the setTimeout handler
+                    console.error('Payment submission error:', err);
+                    alert('Payment failed: ' + (err && err.message ? err.message : String(err)));
+                    spinnerIcon.style.display = 'none';
+                    processingMsg.style.display = 'none';
+                    loadingSpinner.style.display = 'none';
+                    processBtn.disabled = false;
+                });
             });
         });
     </script>
