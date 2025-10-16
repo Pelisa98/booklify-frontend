@@ -9,8 +9,23 @@ export async function createOrder(order) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
     });
-    if (!response.ok) throw new Error('Order creation failed');
-    return response.json();
+    if (!response.ok) {
+        // Try to extract body for better diagnostics
+        let bodyText = '';
+        try {
+            bodyText = await response.text();
+        } catch (e) {
+            bodyText = '<no response body>';
+        }
+        throw new Error(`Order creation failed: ${response.status} ${response.statusText} - ${bodyText}`);
+    }
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    }
+    // Unexpected content type
+    const text = await response.text();
+    throw new Error('Order creation returned non-JSON response: ' + text);
 }
 
 // Add more order-related functions as needed
