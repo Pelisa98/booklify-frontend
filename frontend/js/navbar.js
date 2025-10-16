@@ -182,6 +182,7 @@ class NavbarComponent {
         const homeLink = isHomePage ? 'index.html' : '../index.html';
         const assetsPath = isHomePage ? 'assets' : '../assets';
 
+        // For guests we intentionally omit the cart link — cart requires a logged-in user
         return `
             <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-navbar">
                 <div class="container d-flex align-items-center justify-content-between">
@@ -207,14 +208,6 @@ class NavbarComponent {
                             <li class="nav-item">
                                 <a class="nav-link ${this.currentPage === 'login' ? 'active' : ''}" href="${isHomePage ? 'pages/' : ''}login.html">
                                     <i class="bi bi-box-arrow-in-right me-1"></i>Login
-                                </a>
-                            </li>
-                            <li class="nav-item d-flex align-items-center ms-2">
-                                <a class="nav-link position-relative" href="${isHomePage ? 'pages/' : ''}cart.html">
-                                    <i class="bi bi-cart3 fs-4"></i>
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartBadge" style="display: none;">
-                                        0
-                                    </span>
                                 </a>
                             </li>
                         </ul>
