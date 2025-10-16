@@ -1,4 +1,5 @@
-// products.js - This should be placed in your ../js/ directory
+// products.js
+// Client-side product listing and grouping by title
 document.addEventListener('DOMContentLoaded', function() {
     const bookListContainer = document.querySelector('.products-section .row.g-4');
     const searchInput = document.getElementById('book-search-input');
@@ -8,8 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const { title, author, books, minPrice, maxPrice, totalAvailable } = bookGroup;
         
         // Use the first book's image (they should all be the same book)
-        const firstBook = books[0];
-        const imageUrl = `http://localhost:8081/api/book/image/${firstBook.bookID}`;
+        const firstBook = books[0] || {};
+        const imageUrl = `http://localhost:8081/api/book/image/${firstBook.bookID || firstBook.bookId || firstBook.id || ''}`;
         
         // Determine price display or sold-out state
         let priceDisplay;
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Get available conditions
-        const conditions = [...new Set(books.map(book => book.condition))];
+        const conditions = Array.from(new Set(books.map(book => book.condition)));
         const conditionBadges = conditions.slice(0, 3).map(condition => {
             const colorClass = getConditionColorClass(condition);
             return `<span class="badge ${colorClass} me-1">${condition}</span>`;
@@ -32,16 +33,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Embed the primary book id on the card so clients can update by id when events arrive
         const firstBookId = firstBook.bookID ?? firstBook.bookId ?? firstBook.id ?? '';
+
         return `
             <div class="col-md-4 col-lg-3">
                 <div class="card book-card h-100 shadow-sm" data-first-book-id="${firstBookId}">
-                    <img src="${imageUrl}" class="card-img-top" alt="${title}" style="height: 300px; object-fit: cover;">
+                    <img src="${imageUrl}" class="card-img-top" alt="${escapeHtml(title)}" style="height: 300px; object-fit: cover;">
                     <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">${title}</h5>
-                        <p class="card-text text-muted mb-1">by ${author}</p>
+                        <h5 class="card-title">${escapeHtml(title)}</h5>
+                        <p class="card-text text-muted mb-1">by ${escapeHtml(author)}</p>
                         <div class="mb-2">
                             <div class="fw-bold text-purple mb-1">${priceDisplay}</div>
-                            <small class="text-muted">${totalAvailable} available from ${books.length} seller${books.length > 1 ? 's' : ''}</small>
                         </div>
                         <div class="mb-2">
                             ${conditionBadges}${extraConditions}
@@ -64,7 +65,18 @@ document.addEventListener('DOMContentLoaded', function() {
             'ACCEPTABLE': 'bg-secondary',
             'FAIR': 'bg-danger'
         };
-        return conditionColors[condition?.toUpperCase()] || 'bg-secondary';
+        return conditionColors[(condition || '').toUpperCase()] || 'bg-secondary';
+    };
+
+    // Helper to escape HTML
+    const escapeHtml = (unsafe) => {
+        if (unsafe === null || typeof unsafe === 'undefined') return '';
+        return String(unsafe)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     };
 
     // Function to group books by title
@@ -72,12 +84,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const grouped = {};
         
         books.forEach(book => {
-            const key = `${book.title}-${book.author}`.toLowerCase();
+            const key = `${(book.title || 'Untitled').trim()}-${(book.author || '').trim()}`.toLowerCase();
             
             if (!grouped[key]) {
                 grouped[key] = {
-                    title: book.title,
-                    author: book.author,
+                    title: book.title || 'Untitled',
+                    author: book.author || '',
                     books: [],
                     minPrice: Infinity,
                     maxPrice: -Infinity,
@@ -86,15 +98,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             grouped[key].books.push(book);
-            grouped[key].minPrice = Math.min(grouped[key].minPrice, book.price);
-            grouped[key].maxPrice = Math.max(grouped[key].maxPrice, book.price);
-            // Normalize available: prefer numeric available, else parse integer, else use isAvailable flag, else fallback to 1
-            let avail = 1;
+            grouped[key].minPrice = Math.min(grouped[key].minPrice, Number(book.price) || 0);
+            grouped[key].maxPrice = Math.max(grouped[key].maxPrice, Number(book.price) || 0);
+            // Count each physical copy as 1 if its `available` > 0 (binary availability)
+            let avail = 0;
             if (typeof book.available === 'number') {
-                avail = book.available;
+                avail = book.available > 0 ? 1 : 0;
             } else if (typeof book.available === 'string' && book.available.trim() !== '') {
                 const parsed = parseInt(book.available, 10);
-                avail = Number.isNaN(parsed) ? 1 : parsed;
+                avail = (!Number.isNaN(parsed) && parsed > 0) ? 1 : 0;
             } else if (book.isAvailable === false) {
                 avail = 0;
             }
@@ -107,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to render books in the container
     const renderBooks = (books) => {
         if (!bookListContainer) return;
-        if (books.length === 0) {
+        if (!books || books.length === 0) {
             bookListContainer.innerHTML = '<p class="text-center w-100">No books found.</p>';
             return;
         }
@@ -161,18 +173,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listener for the search input
     let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        const query = e.target.value.trim();
-        // Debounce search to avoid excessive API calls
-        searchTimeout = setTimeout(() => {
-            if (query) {
-                searchBooks(query);
-            } else {
-                fetchAllBooks();
-            }
-        }, 300); // 300ms delay
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            // Debounce search to avoid excessive API calls
+            searchTimeout = setTimeout(() => {
+                if (query) {
+                    searchBooks(query);
+                } else {
+                    fetchAllBooks();
+                }
+            }, 300); // 300ms delay
+        });
+    }
 
     // Initial load of all books
     fetchAllBooks();
@@ -215,16 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     if (!matched) return;
 
-                    const small = card.querySelector('.card-text small.text-muted, .card-body small.text-muted');
-                    if (small && small.textContent) {
-                        // Attempt to parse number from text like "X available"
-                        const m = small.textContent.match(/(\d+)\s+available/);
-                        if (m) {
-                            const current = parseInt(m[1], 10);
-                            const next = Math.max(0, current - quantitySold);
-                            small.textContent = `${next} available from ${card.querySelectorAll('.badge').length} seller${card.querySelectorAll('.badge').length > 1 ? 's' : ''}`;
-                        }
-                    }
+                    // No per-card 'available from' text to update anymore. If you want to update an availability badge or count,
+                    // implement it here (e.g., decrement a numeric counter rendered in the card).
                 } catch (inner) { /* ignore per-card errors */ }
             });
         } catch (err) {
