@@ -402,7 +402,11 @@ window.NavbarComponent = new NavbarComponent();
     if (window.showToast) return;
     try {
         const s = document.createElement('script');
-        s.src = './toastHelper.js';
+        // Determine correct relative path depending on whether the page is inside the /pages/ folder
+        // e.g. /pages/payment.html should load ../js/toastHelper.js while root pages should load ./js/toastHelper.js
+        const path = window.location.pathname || '';
+        const scriptPath = path.includes('/pages/') ? '../js/toastHelper.js' : './js/toastHelper.js';
+        s.src = scriptPath;
         s.defer = true;
         document.head.appendChild(s);
     } catch (e) {
