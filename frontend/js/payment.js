@@ -2,7 +2,7 @@
 // Handles payment form submission and API integration
 import { createPayment } from './paymentService.js';
 import { CartService } from './cartService.js';
-import { createAddress } from './addressService.js';
+import { createAddress, getAddressByUserId, updateAddress } from './addressService.js';
 import { createOrder } from './orderService.js';
 import EmailService from './emailService.js';
 
@@ -40,11 +40,46 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
         address.orderTimestamp = new Date().toISOString();
         address.isOrderSpecific = true;
         
-        console.log('Creating new order-specific address:', address);
-        const savedAddress = await createAddress(address);
-        addressId = savedAddress.id;
-        
-        console.log('Created address with ID:', addressId, 'for order');
+        console.log('Preparing order-specific address object:', address);
+
+        // Try to fetch an existing address for this user. If present, update it instead of creating a duplicate.
+        let savedAddress = null;
+        try {
+            const existing = await getAddressByUserId(userId).catch(e => null);
+            if (existing && existing.id) {
+                console.log('Found existing address for user. Updating address id:', existing.id);
+                // Merge existing with new fields, prefer new non-empty values from form
+                const merged = Object.assign({}, existing, address);
+                // Keep ID for update
+                merged.id = existing.id;
+                // Mark as order-specific if caller requested
+                merged.isOrderSpecific = true;
+                merged.orderTimestamp = address.orderTimestamp;
+                try {
+                    savedAddress = await updateAddress(merged);
+                    addressId = savedAddress.id;
+                    console.log('Updated existing address id for order:', addressId);
+                } catch (updErr) {
+                    console.warn('Failed to update existing address, falling back to createAddress:', updErr);
+                    // fallback to create
+                    savedAddress = await createAddress(address);
+                    addressId = savedAddress.id;
+                    console.log('Created new address id for order after fallback:', addressId);
+                }
+            } else {
+                // No existing address for user — create a new one
+                savedAddress = await createAddress(address);
+                addressId = savedAddress.id;
+                console.log('Created address with ID:', addressId, 'for order');
+            }
+        } catch (err) {
+            // As a last resort, attempt to create the address (network flakiness may cause get to fail)
+            console.warn('Error while checking/updating address, creating new address as fallback:', err);
+            const fallback = await createAddress(address);
+            savedAddress = fallback;
+            addressId = fallback.id;
+            console.log('Created address with ID (fallback):', addressId);
+        }
 
         // 2. Get the user's cart (or build order items as needed)
         const cart = await CartService.getCartByUserId(userId);
@@ -69,16 +104,31 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
         console.log('🛒 Creating order with delivery address:', deliveryAddressString);
         console.log('📤 Order DTO being sent:', JSON.stringify(orderCreateDto, null, 2));
         
-    const savedOrder = await createOrder(orderCreateDto);
-        console.log('✅ Order created successfully:', savedOrder.orderId);
-        console.log('📋 Saved order contains:', JSON.stringify(savedOrder, null, 2));
+        let savedOrder;
+        try {
+            savedOrder = await createOrder(orderCreateDto);
+            console.log('✅ Order created successfully:', savedOrder.orderId);
+            console.log('📋 Saved order contains:', JSON.stringify(savedOrder, null, 2));
+        } catch (orderErr) {
+            console.error('Order creation failed:', orderErr);
+            if (window.showToast) window.showToast('Order creation failed: ' + orderErr.message, 'danger');
+            throw orderErr;
+        }
 
         // 4. Create the payment (using orderId)
-        const payment = await createPayment({
-            userId,
-            orderId: savedOrder.orderId,
-            paymentMethod
-        });
+        let payment;
+        try {
+            payment = await createPayment({
+                userId,
+                orderId: savedOrder.orderId,
+                paymentMethod
+            });
+        } catch (payErr) {
+            console.error('Payment creation failed:', payErr);
+            if (window.showToast) window.showToast('Payment creation failed: ' + payErr.message, 'danger');
+            // Optionally attempt to cancel the order or notify server - left as improvement
+            throw payErr;
+        }
 
         // 5. Clear the cart on successful payment so UI reflects purchase
         try {
@@ -133,30 +183,13 @@ export async function handlePaymentSubmission(userId, paymentMethod, orderAddres
         console.log('📱 Session storage check:', sessionStorage.getItem('currentOrderAddress'));
         console.log('💿 Local storage check:', localStorage.getItem(`orderAddress_${savedOrder.orderId}`));
 
-        // 6. Auto-send invoice email after successful payment
+        // Auto-send invoice email removed per configuration - invoices are available in orders page.
+        // Notify user of success
         try {
-            const userData = JSON.parse(localStorage.getItem('booklifyUserData') || '{}');
-            console.log('Sending automatic invoice email for order:', savedOrder.orderId);
-            console.log('User data for email:', userData);
-            
-            // Check if EmailService is available
-            if (!window.EmailService) {
-                console.error('EmailService not available on window object');
-                if (window.showToast) window.showToast('Payment successful! Your invoice is available in the orders page.', 'success'); else alert('Payment successful! Your invoice is available in the orders page.');
-                return payment;
-            }
-            
-            const emailResult = await EmailService.sendInvoiceAfterPayment(savedOrder.orderId, userData);
-            console.log('Email sending result:', emailResult);
-            
-            if (emailResult && emailResult.success) {
-                if (window.showToast) window.showToast('🎉 Payment successful! Your invoice has been generated and is ready for download.', 'success'); else alert('🎉 Payment successful! Your invoice has been generated and is ready for download.');
-            } else {
-                if (window.showToast) window.showToast('Payment successful! Your invoice is available in the orders page.', 'success'); else alert('Payment successful! Your invoice is available in the orders page.');
-            }
-        } catch (emailError) {
-            console.error('Failed to send invoice email:', emailError);
-            if (window.showToast) window.showToast('Payment succeeded but we could not send the invoice email. You can download it from your orders page.', 'warning'); else alert('Payment successful! Note: There was an issue sending your invoice email, but you can download it from your orders page.');
+            if (window.showToast) window.showToast('🎉 Payment successful! Your invoice is available in the orders page.', 'success'); else alert('Payment successful! Your invoice is available in the orders page.');
+        } catch (notifyErr) {
+            // If toast helper fails, fall back to alert
+            try { alert('Payment successful! Your invoice is available in the orders page.'); } catch (e) { console.log('Payment successful!'); }
         }
         
         // Optionally redirect to confirmation page
