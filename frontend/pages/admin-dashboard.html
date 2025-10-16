@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/analytics.css">
     <link rel="icon" href="/frontend/assets/icons/booklify.ico">
+    <style>
+        /* Ensure action buttons in the copies modal are equal width */
+        .copy-action-btn { min-width: 110px; }
+    </style>
     
     <!-- Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -101,10 +105,11 @@
                                                     <thead>
                                                         <tr>
                                                             <th style="width: 6%;">Book ID</th>
-                                                            <th style="width: 22%;">Title</th>
-                                                            <th style="width: 15%;">Author</th>
-                                                            <th style="width: 10%;">Price</th>
-                                                            <th style="width: 17%;">Uploaded By</th>
+                                                            <th style="width: 20%;">Title</th>
+                                                            <th style="width: 14%;">Author</th>
+                                                            <th style="width: 8%;">Price</th>
+                                                            <th style="width: 12%;">Availability</th>
+                                                            <th style="width: 20%;">Uploaded By</th>
                                                             <th style="width: 10%;">Actions</th>
                                                         </tr>
                                                     </thead>
@@ -178,6 +183,24 @@
     <!-- Modals (User and Book) -->
     <div class="modal fade" id="editUserModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form><input type="hidden" id="editUserId"><div class="mb-3"><label for="editFullName" class="form-label">Full Name</label><input type="text" class="form-control" id="editFullName"></div><div class="mb-3"><label for="editEmail" class="form-label">Email</label><input type="email" class="form-control" id="editEmail"></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="saveUserChanges">Save Changes</button></div></div></div></div>
     <div class="modal fade" id="editBookModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Book</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form><input type="hidden" id="editBookId"><div class="mb-3"><label for="editBookTitle" class="form-label">Title</label><input type="text" class="form-control" id="editBookTitle"></div><div class="mb-3"><label for="editBookAuthor" class="form-label">Author</label><input type="text" class="form-control" id="editBookAuthor"></div><div class="mb-3"><label for="editBookIsbn" class="form-label">ISBN</label><input type="text" class="form-control" id="editBookIsbn"></div><div class="mb-3"><label for="editBookPrice" class="form-label">Price</label><input type="number" class="form-control" id="editBookPrice"></div><div class="mb-3"><label for="editBookDescription" class="form-label">Description</label><textarea class="form-control" id="editBookDescription" rows="3"></textarea></div><div class="mb-3"><label for="editBookCondition" class="form-label">Condition</label><select class="form-select" id="editBookCondition"><option>EXCELLENT</option><option>GOOD</option><option>FAIR</option></select></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" id="saveBookChanges">Save changes</button></div></div></div></div>
+
+    <!-- Group Copies Modal -->
+    <div class="modal fade" id="groupCopiesModal" tabindex="-1" aria-labelledby="groupCopiesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="groupCopiesModalLabel">Copies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="groupCopiesModalBody">
+                    <!-- copies will be injected here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Notification Modals -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
@@ -491,34 +514,68 @@
                 const tbody = document.getElementById('booksTableBody');
                 if (!tbody) return;
                 tbody.innerHTML = '';
-                for (const book of books) {
-                    let uploaderDisplay = 'N/A';
-                    if (book.uploader) {
-                        uploaderDisplay = `${book.uploader.fullName || ''}<br><small>${book.uploader.email || ''}</small>`;
-                    } else if (book.userId && book.uploaderName && book.uploaderEmail) {
-                        uploaderDisplay = `${book.uploaderName}<br><small>${book.uploaderEmail}</small>`;
-                    } else if (book.userId) {
-                        uploaderDisplay = book.userId;
+
+                // Group books by normalized title (case-insensitive, trimmed)
+                const groups = {};
+                books.forEach(book => {
+                    const titleKey = (book.title || 'Untitled').trim().toLowerCase();
+                    if (!groups[titleKey]) groups[titleKey] = { title: book.title || 'Untitled', copies: [] };
+                    // Normalize availability as binary: each copy counts as 1 if available > 0
+                    var avail = 0;
+                    if (typeof book.available === 'number') {
+                        avail = book.available > 0 ? 1 : 0;
+                    } else if (typeof book.available === 'string' && book.available.trim() !== '') {
+                        const parsed = parseInt(book.available, 10);
+                        avail = (!Number.isNaN(parsed) && parsed > 0) ? 1 : 0;
+                    } else if (book.isAvailable === false) {
+                        avail = 0;
                     }
+                    groups[titleKey].copies.push(Object.assign({}, book, { _normalizedAvailable: avail }));
+                });
+
+                // Render grouped rows
+                Object.keys(groups).forEach((key, index) => {
+                    const group = groups[key];
+                    const totalAvailable = group.copies.reduce((s, c) => s + (Number(c._normalizedAvailable) || 0), 0);
+
+                    // Choose representative fields for group row (first copy)
+                    const rep = group.copies[0] || {};
+
+                    let uploaderDisplay = 'Multiple';
+                    if (rep.uploader) {
+                        uploaderDisplay = `${rep.uploader.fullName || ''}<br><small>${rep.uploader.email || ''}</small>`;
+                    } else if (rep.uploaderName || rep.uploaderEmail) {
+                        uploaderDisplay = `${rep.uploaderName || ''}<br><small>${rep.uploaderEmail || ''}</small>`;
+                    }
+
+                    const availabilityHtml = totalAvailable <= 0
+                        ? `<span class="badge bg-danger">Sold out</span>`
+                        : `<span class="badge bg-success">${totalAvailable} available</span>`;
+
+                    // Actions: view copies, edit representative, delete representative
                     tbody.innerHTML += `
                         <tr>
-                            <td style="word-break: break-all;">${book.bookID || book.id}</td>
-                            <td style="word-break: break-word; white-space: normal;">${book.title}</td>
-                            <td style="word-break: break-word; white-space: normal;">${book.author}</td>
-                            <td style="word-break: break-all;">${formatCurrency(book.price)}</td>
+                            <td style="word-break: break-all;">${rep.bookID || rep.id || ''}</td>
+                            <td style="word-break: break-word; white-space: normal;">${escapeHtml(group.title)}</td>
+                            <td style="word-break: break-word; white-space: normal;">${escapeHtml(rep.author || '')}</td>
+                            <td style="word-break: break-all;">${formatCurrency(rep.price)}</td>
+                            <td>${availabilityHtml} <button class="btn btn-sm btn-link" onclick="viewGroupCopies('${encodeURIComponent(key)}')">View copies</button></td>
                             <td style="word-break: break-word; white-space: normal;">${uploaderDisplay}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="editBook(${book.bookID || book.id})"><i class="bi bi-pencil"></i></button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBook(${book.bookID || book.id})"><i class="bi bi-trash"></i></button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editBook(${rep.bookID || rep.id || ''})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBook(${rep.bookID || rep.id || ''})"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>`;
-                }
+                });
+
+                // Update total books count in overview to reflect total copies
                 document.getElementById('totalBooksCount').textContent = books.length;
-            } catch (e) { 
-                console.error("Failed to load books:", e); 
+                // Store groups globally for viewGroupCopies
+                window.__adminBookGroups = groups;
+            } catch (e) {
+                console.error("Failed to load books:", e);
                 console.error("Error details:", e.message);
-                // Show error in the UI
-                document.getElementById('booksTableBody').innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load books. Check console for details.</td></tr>';
+                document.getElementById('booksTableBody').innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load books. Check console for details.</td></tr>';
             }
         };
 
@@ -742,6 +799,106 @@
             }
         };
 
+        // Utility to escape HTML for safe insertion
+        function escapeHtml(unsafe) {
+            if (unsafe === null || unsafe === undefined) return '';
+            return String(unsafe)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Show modal with all copies in a group (groupKey is encoded)
+        window.viewGroupCopies = function(encodedKey) {
+            const key = decodeURIComponent(encodedKey);
+            // remember which group is open so we can reopen it after edits
+            window.__lastOpenedGroupKey = key;
+            const groups = window.__adminBookGroups || {};
+            const group = groups[key];
+            if (!group) {
+                alert('No copies found for this group');
+                return;
+            }
+
+            const modalBody = document.getElementById('groupCopiesModalBody');
+            modalBody.innerHTML = '';
+
+            group.copies.forEach(copy => {
+                const avail = Number(copy._normalizedAvailable) || 0;
+                const availText = avail <= 0 ? '<span class="badge bg-danger">Sold out</span>' : `<span class="badge bg-success">${avail} available</span>`;
+                const uploader = copy.uploader ? `${escapeHtml(copy.uploader.fullName || '')}<br><small>${escapeHtml(copy.uploader.email || '')}</small>` : (copy.uploaderName ? `${escapeHtml(copy.uploaderName)}<br><small>${escapeHtml(copy.uploaderEmail || '')}</small>` : (copy.userId || 'N/A'));
+
+                const row = document.createElement('div');
+                row.className = 'mb-3 p-2 border rounded d-flex justify-content-between align-items-start gap-3';
+                row.innerHTML = `
+                    <div class="flex-grow-1">
+                        <div><strong>ID:</strong> ${escapeHtml(copy.bookID || copy.id || '')}</div>
+                        <div><strong>Title:</strong> ${escapeHtml(copy.title || '')}</div>
+                        <div><strong>Author:</strong> ${escapeHtml(copy.author || '')}</div>
+                        <div><strong>Price:</strong> ${formatCurrency(copy.price)}</div>
+                        <div><strong>Availability:</strong> ${availText}</div>
+                        <div><strong>Uploaded By:</strong> ${uploader}</div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end ms-3">
+                        <button class="btn btn-sm btn-outline-primary mb-2 copy-action-btn" onclick="openEditBookModal('${escapeHtml(copy.bookID || copy.id || '')}')"><i class="bi bi-pencil"></i> Edit</button>
+                        <button class="btn btn-sm btn-outline-danger copy-action-btn" onclick="confirmDeleteCopy('${escapeHtml(copy.bookID || copy.id || '')}')"><i class="bi bi-trash"></i> Delete</button>
+                    </div>
+                `;
+
+                modalBody.appendChild(row);
+            });
+
+            document.getElementById('groupCopiesModalLabel').textContent = `Copies of: ${group.title}`;
+            const modal = new bootstrap.Modal(document.getElementById('groupCopiesModal'));
+            modal.show();
+        };
+
+        // Populate and open the existing editBook modal for a specific copy id
+    window.openEditBookModal = async function(bookId) {
+            // Load the single book from server to ensure we use the same endpoint
+            try {
+                const grpModalEl = document.getElementById('groupCopiesModal');
+                const grpModal = bootstrap.Modal.getInstance(grpModalEl);
+                if (grpModal) grpModal.hide();
+
+                const book = await AdminService.getBookById(bookId);
+                document.getElementById('editBookId').value = book.bookID || book.id || book._id || '';
+                document.getElementById('editBookTitle').value = book.title || '';
+                document.getElementById('editBookAuthor').value = book.author || '';
+                document.getElementById('editBookIsbn').value = book.isbn || '';
+                document.getElementById('editBookPrice').value = book.price || '';
+                document.getElementById('editBookDescription').value = book.description || '';
+                if (book.condition) document.getElementById('editBookCondition').value = book.condition;
+
+                const editModal = new bootstrap.Modal(document.getElementById('editBookModal'));
+                editModal.show();
+            } catch (e) {
+                console.error('Failed to load book for editing:', e);
+                showErrorModal('Failed to load book for editing: ' + (e.message || e));
+            }
+        }
+
+        // Confirm then call deleteBook (uses existing deleteBook function attached to window)
+        window.confirmDeleteCopy = async function(bookId) {
+            // Use the app's confirm modal for consistent UX
+            showConfirmModal('Are you sure you want to delete this book copy? This action cannot be undone.', async () => {
+                try {
+                    await AdminService.deleteBookById(bookId);
+                    try { AdminService.logActivity && AdminService.logActivity('Book Deleted', 'Admin', `Deleted book ID: ${bookId}`, 'book_delete'); } catch (e) { console.warn('Failed to log activity:', e); }
+                    await loadBooks();
+                    const grpModalEl = document.getElementById('groupCopiesModal');
+                    const grpModal = bootstrap.Modal.getInstance(grpModalEl);
+                    if (grpModal) grpModal.hide();
+                    showSuccessModal('Book deleted successfully');
+                } catch (e) {
+                    console.error('Failed to delete book copy:', e);
+                    showErrorModal('Failed to delete book: ' + (e.message || e));
+                }
+            }, 'Delete Book');
+        }
+
         // Function to filter orders by status
         window.filterOrdersByStatus = () => {
             const selectedStatus = document.getElementById('statusFilter').value;
@@ -898,9 +1055,10 @@
             } catch (e) { showErrorModal('Failed to fetch book details: ' + e.message); }
         };
 
-        window.deleteBook = async (id) => {
+        // Accepts optional onSuccess callback which will be invoked after successful deletion
+        window.deleteBook = async (id, onSuccess) => {
             showConfirmModal('Are you sure you want to delete this book? This action cannot be undone.', async () => {
-                try { 
+                try {
                     // Get book details for logging before deletion
                     let bookDetails = 'Unknown Book';
                     try {
@@ -910,22 +1068,25 @@
                         console.warn('Could not fetch book details for logging:', e);
                         bookDetails = `Book ID: ${id}`;
                     }
-                    
-                    await AdminService.deleteBookById(id); 
-                    
+
+                    await AdminService.deleteBookById(id);
+
                     // Log activity
                     AdminService.logActivity(
-                        'Book Deleted', 
-                        'Admin', 
-                        `Deleted book: ${bookDetails}`, 
+                        'Book Deleted',
+                        'Admin',
+                        `Deleted book: ${bookDetails}`,
                         'book_delete'
                     );
-                    
+
                     await loadBooks();
                     showSuccessModal('Book deleted successfully');
-                } 
-                catch (e) { 
-                    showErrorModal('Failed to delete book: ' + e.message); 
+
+                    if (typeof onSuccess === 'function') {
+                        onSuccess();
+                    }
+                } catch (e) {
+                    showErrorModal('Failed to delete book: ' + e.message);
                 }
             }, 'Delete Book');
         };
@@ -985,24 +1146,34 @@
         document.getElementById('saveBookChanges').addEventListener('click', async () => {
             const id = document.getElementById('editBookId').value;
             const data = { title: document.getElementById('editBookTitle').value, author: document.getElementById('editBookAuthor').value, isbn: document.getElementById('editBookIsbn').value, price: document.getElementById('editBookPrice').value, description: document.getElementById('editBookDescription').value, condition: document.getElementById('editBookCondition').value };
-            try { 
-                await AdminService.updateBookById(id, data); 
-                
-                // Log activity
-                AdminService.logActivity(
-                    'Book Updated', 
-                    'Admin', 
-                    `Updated book: "${data.title}" by ${data.author}`, 
-                    'book_edit'
-                );
-                
-                bookModal.hide(); 
-                await loadBooks();
-                showSuccessModal('Book updated successfully');
-            } 
-            catch (e) { 
-                showErrorModal('Failed to update book: ' + e.message); 
-            }
+
+            showConfirmModal('Save changes to this book?', async () => {
+                try {
+                    await AdminService.updateBookById(id, data);
+                    // Log activity
+                    AdminService.logActivity(
+                        'Book Updated', 
+                        'Admin', 
+                        `Updated book: "${data.title}" by ${data.author}`, 
+                        'book_edit'
+                    );
+
+                    bookModal.hide(); 
+                    await loadBooks();
+                    showSuccessModal('Book updated successfully');
+
+                    // If admin was viewing a group when they opened the edit modal, reopen that group to show updated copy
+                    const key = window.__lastOpenedGroupKey;
+                    if (key) {
+                        // Slight delay to ensure loadBooks completed and groups refreshed
+                        setTimeout(() => {
+                            try { viewGroupCopies(encodeURIComponent(key)); } catch (e) { /* ignore */ }
+                        }, 300);
+                    }
+                } catch (e) {
+                    showErrorModal('Failed to update book: ' + (e.message || e));
+                }
+            }, 'Save Changes');
         });
         
         // Handle confirmed logout from modal (navbar.js handles the logout button click)
