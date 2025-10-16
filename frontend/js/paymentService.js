@@ -9,14 +9,17 @@ export async function createPayment({ userId, orderId, paymentMethod }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, orderId, paymentMethod })
     });
-    if (!response.ok) throw new Error('Payment creation failed');
+    if (!response.ok) {
+        let body = '';
+        try { body = await response.text(); } catch(e) { body = '<no body>'; }
+        throw new Error(`Payment creation failed: ${response.status} ${response.statusText} - ${body}`);
+    }
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
         return response.json();
-    } else {
-        const text = await response.text();
-        throw new Error('Non-JSON response: ' + text);
     }
+    const text = await response.text();
+    throw new Error('Payment creation returned non-JSON response: ' + text);
 }
 
 export async function updatePayment(paymentId, payment) {
