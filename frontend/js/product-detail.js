@@ -65,16 +65,16 @@ class ProductDetailController {
                             for (const cond in this.booksByCondition) {
                                 this.booksByCondition[cond] = this.booksByCondition[cond].map(b => {
                                     const bId = b.bookID ?? b.bookId ?? b.id;
-                                    if (bId && String(bId) === String(incomingBookId)) {
-                                        // Use numeric fallback when b.available is undefined
-                                        const currentAvail = (typeof b.available === 'number') ? b.available : (b.isAvailable === false ? 0 : 1);
-                                        b.available = Math.max(0, currentAvail - quantitySold);
-                                    }
-                                    return b;
-                                }).filter(b => {
-                                    const avail = (typeof b.available === 'number') ? b.available : (b.isAvailable === false ? 0 : 1);
-                                    return avail > 0;
-                                });
+                                            if (bId && String(bId) === String(incomingBookId)) {
+                                                // Use normalizeAvailable to get authoritative availability
+                                                const currentAvail = this.normalizeAvailable(b);
+                                                b.available = Math.max(0, currentAvail - quantitySold);
+                                            }
+                                            return b;
+                                        }).filter(b => {
+                                            const avail = this.normalizeAvailable(b);
+                                            return avail > 0;
+                                        });
                             }
                         }
                         this.renderBookDetailsWithConditions(this.currentBook, this.booksByCondition);
@@ -152,9 +152,9 @@ class ProductDetailController {
      * Group books by condition for the same title
      */
     groupBooksByCondition(allBooks, targetTitle) {
+        // Include all books that match the title. Availability is determined later using normalizeAvailable.
         const matchingBooks = allBooks.filter(book => 
-            book.title.toLowerCase() === targetTitle.toLowerCase() && 
-            book.isAvailable !== false // Only include available books
+            String(book.title || '').toLowerCase() === String(targetTitle || '').toLowerCase()
         );
 
         const grouped = {};
@@ -178,14 +178,25 @@ class ProductDetailController {
 
     // Normalize available on a book record
     normalizeAvailable(b) {
+        // Treat `available` as binary: any numeric > 0 counts as 1 (available), otherwise 0.
         if (!b) return 0;
-        if (typeof b.available === 'number') return b.available;
+        if (typeof b.available === 'number') return b.available > 0 ? 1 : 0;
         if (typeof b.available === 'string' && b.available.trim() !== '') {
-            const parsed = parseInt(b.available, 10);
-            if (!Number.isNaN(parsed)) return parsed;
+            var n = parseInt(b.available, 10);
+            if (!isNaN(n)) return n > 0 ? 1 : 0;
         }
         if (b.isAvailable === false) return 0;
-        return 1;
+        return 0;
+    }
+
+    // Return true if the book record explicitly provides availability information
+    // i.e., an `available` number or numeric string, or an explicit `isAvailable === false` flag.
+    hasExplicitAvailability(b) {
+        if (!b) return false;
+        if (typeof b.available === 'number') return true;
+        if (typeof b.available === 'string' && b.available.trim() !== '') return true;
+        if (b.isAvailable === false) return true;
+        return false;
     }
 
     // Compute total available copies across grouped conditions
@@ -249,6 +260,33 @@ class ProductDetailController {
 
         this.productDetailContainer.innerHTML = bookDetailsHtml;
         this.setupConditionHandlers(booksByCondition);
+
+        // Determine total available across conditions and respect main book explicit availability
+        let totalAvailable = this.computeTotalAvailable(this.booksByCondition);
+        if (this.currentBook) {
+            const hasExplicitMainAvail = this.hasExplicitAvailability(this.currentBook);
+            if (hasExplicitMainAvail) {
+                const mainAvail = this.normalizeAvailable(this.currentBook);
+                if (mainAvail === 0) totalAvailable = 0;
+            }
+        }
+
+        // If no copies available, show sold-out banner and disable add buttons (global behavior similar to cart)
+        if (totalAvailable <= 0) {
+            const existing = this.productDetailContainer.querySelector('.page-sold-out-banner');
+            if (!existing) {
+                const banner = document.createElement('div');
+                banner.className = 'page-sold-out-banner alert alert-danger text-center mb-3';
+                banner.textContent = 'Sold out - no copies are currently available for this title.';
+                this.productDetailContainer.insertBefore(banner, this.productDetailContainer.firstChild);
+            }
+
+            // Optionally disable view options as well
+            this.productDetailContainer.querySelectorAll('.view-sellers-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('disabled');
+            });
+        }
     }
 
     /**
@@ -258,24 +296,7 @@ class ProductDetailController {
         // Store reference to grouped books for use in handleAddToCart
         this.groupedBooks = booksByCondition;
 
-        // Add event listeners for "Add Cheapest" buttons
-        document.querySelectorAll('.add-cheapest-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                try {
-                    console.debug('add-cheapest-btn click', { dataset: e.target.dataset });
-                } catch (err) { /* ignore */ }
-                const condition = e.target.dataset.condition;
-                const price = parseFloat(e.target.dataset.price);
-                
-                // Find the cheapest book in this condition
-                const booksInCondition = booksByCondition[condition];
-                const selectedBook = booksInCondition.find(book => book.price === price) || booksInCondition[0];
-                
-                if (selectedBook) {
-                    await this.handleAddToCart(selectedBook.bookID, condition);
-                }
-            });
-        });
+        // Add event listeners for view options buttons (already handled below)
 
         // Add event listeners for "View Options" buttons
         document.querySelectorAll('.view-sellers-btn').forEach(button => {
@@ -360,30 +381,28 @@ class ProductDetailController {
                 priceDisplay = `R${lowestPrice.toFixed(2)} - R${highestPrice.toFixed(2)}`;
             }
 
+            // Availability text: show 'Not Available' in red or 'X Available' in green
+            const availabilityHtml = quantity === 0
+                ? `<div class="text-danger fw-bold">Not Available</div>`
+                : `<div class="text-success fw-bold">${quantity} Available</div>`;
+
+            // View options button only (no add-to-cart or favorite)
+            const viewBtnHtml = `<button class="btn btn-outline-secondary btn-sm view-sellers-btn" data-condition="${condition}"><i class="bi bi-eye me-1"></i> VIEW OPTIONS</button>`;
+
             html += `
                 <div class="condition-option border rounded mb-3 p-3" data-condition="${condition}">
                     <div class="row align-items-center">
                         <div class="col-md-3">
                             <h6 class="fw-bold text-${details.color} mb-1">${condition}</h6>
-                            <small class="text-muted">${quantity} available from ${books.length > 1 ? books.length + ' sellers' : '1 seller'}</small>
-                            ${quantity === 0 ? '<div class="mt-2"><span class="badge bg-danger">Sold out</span></div>' : ''}
+                            ${availabilityHtml}
                         </div>
                         <div class="col-md-4">
                             <span class="h5 fw-bold text-purple">${priceDisplay}</span>
                             ${prices.length > 1 ? '<br><small class="text-muted">Multiple prices available</small>' : ''}
                         </div>
                         <div class="col-md-5">
-                            <div class="d-flex gap-2 align-items-center">
-                                <button class="btn btn-purple btn-sm view-sellers-btn" 
-                                        data-condition="${condition}">
-                                    <i class="bi bi-eye me-1"></i> VIEW OPTIONS
-                                </button>
-                                <button ${quantity === 0 ? 'disabled class="btn btn-outline-secondary btn-sm disabled"' : 'class="btn btn-outline-secondary btn-sm add-cheapest-btn"'} 
-                                        data-condition="${condition}" 
-                                        data-price="${lowestPrice}"
-                                        title="Add cheapest option to cart">
-                                    <i class="bi bi-cart-plus me-1"></i> ${quantity === 0 ? 'Unavailable' : 'CHEAPEST'}
-                                </button>
+                            <div class="d-flex gap-2 align-items-center justify-content-end">
+                                ${viewBtnHtml}
                             </div>
                         </div>
                     </div>
@@ -688,16 +707,20 @@ class ProductDetailController {
         // Sort books by price (lowest first)
         const sortedBooks = books.sort((a, b) => a.price - b.price);
 
+        // Count sellers that have available stock according to normalizeAvailable
+        const sellersWithStock = sortedBooks.filter(b => this.normalizeAvailable(b) > 0);
+
         // Generate seller options HTML
         let sellersHtml = `
             <div class="mb-3">
-                <p class="text-muted mb-3">Choose from ${books.length} seller${books.length > 1 ? 's' : ''} offering this book in ${condition} condition:</p>
+                <p class="text-muted mb-3">Choose from ${sellersWithStock.length} seller${sellersWithStock.length > 1 ? 's' : ''} currently in stock offering this book in ${condition} condition:</p>
             </div>
         `;
 
         sortedBooks.forEach((book, index) => {
             const isLowestPrice = index === 0;
             const uploadDate = new Date(book.uploadedDate).toLocaleDateString();
+            const sellerAvail = this.normalizeAvailable(book);
 
             sellersHtml += `
                 <div class="seller-option border rounded mb-3 p-3 ${isLowestPrice ? 'border-success' : ''}">
@@ -705,6 +728,7 @@ class ProductDetailController {
                         <div class="col-md-2">
                             ${isLowestPrice ? '<span class="badge bg-success mb-2">Best Price</span><br>' : ''}
                             <small class="text-muted">Seller #${book.userID || 'Unknown'}</small>
+                            <div class="mt-1 small ${sellerAvail > 0 ? 'text-success' : 'text-danger'}">${sellerAvail > 0 ? sellerAvail + ' available' : 'Out of stock'}</div>
                         </div>
                         <div class="col-md-3">
                             <h5 class="fw-bold text-purple mb-1">R${book.price.toFixed(2)}</h5>
@@ -717,9 +741,10 @@ class ProductDetailController {
                             <button class="btn ${isLowestPrice ? 'btn-success' : 'btn-purple'} btn-sm w-100 select-seller-btn" 
                                     data-book-id="${book.bookID}" 
                                     data-condition="${condition}"
-                                    data-price="${book.price}">
+                                    data-price="${book.price}"
+                                    ${sellerAvail <= 0 ? 'disabled aria-disabled="true"' : ''}>
                                 <i class="bi bi-cart-plus me-1"></i> 
-                                ${isLowestPrice ? 'ADD CHEAPEST' : 'ADD TO CART'}
+                                ${sellerAvail <= 0 ? 'OUT OF STOCK' : (isLowestPrice ? 'ADD CHEAPEST' : 'ADD TO CART')}
                             </button>
                         </div>
                     </div>
