@@ -848,4 +848,4 @@ class EmailService {
 }
 
 // Export for use in other modules
-window.EmailService = EmailService;
+export default EmailService;
